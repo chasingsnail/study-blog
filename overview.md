@@ -140,7 +140,6 @@
 ### 模块化（webpack打包基础）
 
 + [前端模块化详解(完整版)](https://juejin.im/post/5c17ad756fb9a049ff4e0a62)
-+ [前端工程师必备：前端的模块化](https://juejin.im/post/5cb004da5188251b130c773e)
 + [require时，exports和module.exports的区别你真的懂吗?](https://juejin.im/post/5d5639c7e51d453b5c1218b4)
 
 ### 正则
