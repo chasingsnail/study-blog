@@ -339,9 +339,206 @@ var eventHandler = {
 }
 ```
 
+# Ajax
 
+## XMLHttpRequest
 
-# （重要）Ajax
+ajax 技术的核心是 XMLHttpRequest 对象，它能够以异步方式从服务端湖区信息，不必刷新页面。
 
+```js
+var xhr = new XMLHttpRequest()
 
+// 接受三个参数：发送的请求类型、请求 url 、是否异步发送
+xhr.open('get', '/ajax.json', true)
+
+// 调用 send 方法发送请求，参数为携带的参数
+xhr.send(null)
+```
+
+常见的有 `get` 和 `post` 请求。
+
++ 发送 `get` 请求时，一般把参数放在 `url` 中，例如 `?foo1=bar1&foo2=bar2`
++ 发送 `post` 请求时，数据放在 body 中，一般会以 `form` 表单的形式（通过设置不同的 header ）或者以 json 的形式发送数据
+
+```js
+var xhr = new XMLHttpRequest()
+
+// get
+xhr.open('get', '/ajax.json?foo=bar', true)
+xhr.send(null)
+
+// post
+xhr.open('post', '/ajax.json', true)
+// post form
+xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')
+var formData = new FormData()
+formData.append('foo', 'bar')
+xhr.send(formData)
+// post json
+xhr.setRequestHeader('Content-Type', 'application/json')
+var jsonData = {
+  foo: 'bar'
+}
+xhr.send(jsonData)
+```
+
+同样的，通过监听 readyState 的变化来判断当前的请求状态。
+
+readyState状态如下：
+
++ 0：未调用 open 方法
++ 1：已经调用 open 方法但为调用 send 方法
++ 2：已经调用 send 方法但未收到返回
++ 3：收到部分响应数据
++ 4：收到所有响应的数据
+
+xhr 实例上还有一些方法和属性。
+
+| 属性/方法          | 说明                                   |
+| ------------------ | -------------------------------------- |
+| responseText       | 监听 readyState 的变化来判断当前请求的 |
+| status             | 响应的 HTTP 状态码                     |
+| statusText()       | HTTP 状态说明                          |
+| getRequestHeader() | 获取服务区返回的 header                |
+
+完整发送请求的过程如下：
+
+```js
+var xhr = new XMLHttpRequest()
+
+xhr.onreadStatuschange = function () {
+  if (xhr.readyStatus !== 4) return
+  if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
+    alert(xhr.responseText)
+  } else {
+    alert('error' + xhr.status + xhr.statusText())
+  }
+}
+
+xhr.open('get', '/ajax.json', true)
+
+xhr.send(null)
+```
+
+## Fetch API
+
+ES6之后，浏览器端增加了 fetch api
+
+`fetch(url [, options])`，url 为请求地址，options 为配置参数。
+
+特点如下：
+
++ 返回一个 promise 的结果
++ 默认不带 cookie，需要使用配置 `credentials: "include"`
++ 只有当网络故障或请求被阻止时，才会标记为 reject。否则即使返回码为 4xx 或 5xx，也仍然会 resolve 这个 promise
+
+```js
+fetch('/ajax.json', {
+	method: 'post'
+}).then(() => {
+  console.log('请求发送成功')
+})
+```
+
+与 ajax 请求不同的是，需要调用一些方法才能够拿到真正服务端返回的结果。
+
+```js
+fetch('/ajax.json')
+	.then(res => {
+  	res.text() // 返回字符串
+  	res.json() // 返回 json
+  	res.blob() // 一般指返回文件对象
+  	res.arrayBuffer() // 返回一个二进制文件
+  	res.formData() // 返回表单格式内容
+	})
+```
+
+例如常见的 json 请求，需要调用一次 json() 方法来使返回结果序列化为  json。
+
+还有一些常见的 response 属性
+
++ Response.status 状态码
++ Response.statusText 状态码信息
++ Response.ok 检查 response 的状态是否在 200 - 299 这个范围内，返回一个 boolean 值。可以结合返回的 promise 是否 resolve 来判断是一个请求是否成功
+
+### 终止请求
+
+可以通过 **AbortController** 和 **AbortSignal** API来终止。如果调用时请求完成了，不会发生错误。如果请求没有完成，fetch 会抛出一个异常，并可以在返回的 promise 中的 catch 捕获到。
+
+```js
+const controller = new AbortController()
+const signal = controller.signal
+
+fetch('./data.json', {
+  signal
+}),then(() => {
+  console.log('请求成功')
+}).catch(err => {
+  if (err.name === 'AbortError') {
+    console.log('请求终止')
+  }
+})
+
+// 可以通过调用controller.abort()来通知终止事件
+controller.abort()
+```
+
+# 通用请求方法封装
+
+```js
+function fetch(url, config) {
+  if (window.fetch) {
+    return window.fetch(url, config)
+  }
+  return new Promise((resolve, reject) => {
+    // 生成兼容 xhr 对象
+    function createXHR() {
+      if (typeof XMLHttpRequest !== undefined) {
+        return new XMLHttpRequest()
+      }
+      // 兼容早期 IE
+      if (typeof ActiveXObject !== undefined) {
+        if (typeof arguments.callee.activeXString !== 'string') {
+          var versions = ['MSXML2.XMLHttp.6.0', 'MSXML2.XML2.XMLHttp.3.0', 'MSXML2.XMLHttp']
+          for (var i = 0; i < versions.length; i++) {
+						try {
+							new ActiveXObject(versions[i]);
+							arguments.callee.activeXString = versions[i];
+							break;
+ 						} catch (e) {}
+ 					}
+        }
+        return new ActiveXObject(arguments.callee.activeXString)
+      }
+      throw new Error('不支持 xhr 相关内容');
+    }
+    
+    var xhr = createXHR()
+    xhr.onreadStatuschange = function () {
+      if (xhr.readyStatus !== 4) return
+      const { status, statusText } = xhr
+      var body = 'response' in xhr ? xhr.response : xhr.responseText
+      // 模拟 fetch 返回结果属性与方法
+      var response = {
+        status: status || 200,
+        statusText: statusText || 'ok',
+        ok: status >=200 && status < 300,
+        text() {
+          if (typeof body === 'string') {
+            return Promise.resolve(body)
+          }
+        },
+        json() {
+          return this.text().then(JSON.parse)
+        }
+      }
+      resolve(response)
+    }
+
+    xhr.open(config.method || 'get', url, true)
+
+    xhr.send()
+  })
+}
+```
 
