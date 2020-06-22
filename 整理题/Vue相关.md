@@ -14,16 +14,26 @@
 
 ### next-tick的实现
 
-异步队列更新用来解决避免修改多个属性值时，每一个属性的更改都触发重新渲染的问题。通过将 watcher 放进一个队列中，同时判断不会重复添加，当所有的变化完成时，一次性更新队列中所有 watcher 的更新。
+#### 作用
+
+在下次 DOM 更新循环结束后执行延迟回调，在修改数据之后立即使用 `nextTick` 来获取更新后的 DOM。
+
+#### 实现
 
 优先使用 microTask，往后逐渐降级为 macro task 的 setTimeout：
 
 1. promise.then
-2. MutationObserver
+2. MutationObserver (监听 DOM 树的更改)
 3. setImmediate
 4. setTimeout
 
 原因在于，往往两个 macro task 之间会穿插 UI 渲染（例如 v-on 绑定的事件回调回强制走 macro task）。结合 JS 执行任务队列机制，调用栈空闲后会执行先清空 micro task 队列，然后才会执行下一个 macro task。因此可以优先在 micro task 中把 UI 渲染之前需要更新的数据全部更新，这样只需一次渲染就能得到最新的 DOM。
+
+#### 应用
+
+1. 获取数据更新之后的 DOM
+
+2. Vue 使用异步队列更新，这样做时为了避免修改多个属性值时，每一个属性的更改都触发重新渲染的问题。通过将 watcher 放进一个队列中，同时判断不会重复添加，当所有的变化完成时，一次性更新队列中所有 watcher 的更新。
 
 ### computed 与 watch 的实现与对比
 
