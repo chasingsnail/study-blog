@@ -15,7 +15,7 @@
       + ES6 class extends 继承
       + 二者区别
       + constructor 的重写
-+ 执行上下文、作用域与作用域链、闭包	
++ 执行上下文、作用域与作用域链、闭包	(完成)
 		+ JS的执行上下文
 		+ 作用域连（要到创建这个函数的那个作用域中取值——是“创建”，而不是“调用”）
     	+ 函数的生命周期
@@ -26,7 +26,7 @@
     	+ 高阶函数应用（柯里化）
 + 异步（完成）
     + promise
-    	+ Promise 基本用法，了解各规范g g（Promise A+等） （wfp 文章）
+    	+ Promise 基本用法，了解各规范（Promise A+等） （wfp 文章）
     	+ 实现一个Promise 
     	+ 手写 all、once、finally 方法
     + async与await，及其内部实现原理（generator）
@@ -110,6 +110,7 @@
 
 +  [挑战一轮大厂后的面试总结 (含六个方向) - css 篇](https://juejin.im/post/5e59deb0518825494e278549 )
 + [CSS知识点面试总结](https://juejin.im/post/5e53cefbf265da57570475a7)
++ [一文说清浏览器解析与CSS动画优化](https://segmentfault.com/a/1190000008015671)
 
 ## JavaScript
 
@@ -140,11 +141,13 @@
 ### 模块化（webpack打包基础）
 
 + [前端模块化详解(完整版)](https://juejin.im/post/5c17ad756fb9a049ff4e0a62)
++ [前端工程师必备：前端的模块化](https://juejin.im/post/5cb004da5188251b130c773e)
 + [require时，exports和module.exports的区别你真的懂吗?](https://juejin.im/post/5d5639c7e51d453b5c1218b4)
 
 ### 正则
 
 + [正则表达式不要背](https://juejin.im/collection/58b1062b6a22657a3869862f)
++ [前端为什么要会正则](https://zhuanlan.zhihu.com/p/57149231)
 
 ### 类型
 
@@ -166,19 +169,23 @@
 ### Vue
 
 + 响应式原理
-  + `Vue`大进度款拉萨漏水了 是啊啊
+  + `Vue`大
 + Computed的实现
   1. [Vue 的计算属性真的会缓存吗？（保姆级教学，原理深入揭秘）](https://juejin.im/post/5e8fd7a3f265da47c35d7d29)
   2. fs sf
 + Vue3
   + [Vue3 的响应式和以前有什么区别，Proxy 无敌？](https://juejin.im/post/5e92d863f265da47e57fe065)
 + 相关题目
-  +  [2020年大厂面试指南 - Vue篇](https://juejin.im/post/5e4d24cce51d4526f76eb2ba )
+  +  [2020年大厂面试指南 - Vue篇](https://juejin.im/post/5e4d24cce51d4526f76eb2ba)
   +  [为什么Vue中不要使用index作为key](https://juejin.im/post/5e8694b75188257372503722)
   +  [想用Vuejs突破20K必备的热门面试题](https://juejin.im/post/5e6b414bf265da574657ec6d)
   +  [12道高频原理面试题](https://juejin.im/post/5e04411f6fb9a0166049a073)
 
 ### React
+
+### Diff
+
++ [key的作用](https://zhuanlan.zhihu.com/p/59619074)
 
 ## CSS
 
@@ -214,6 +221,7 @@
 
 + 优化
   + [玩转 webpack，使你的打包速度提升]( https://juejin.im/post/5e53dbbc518825494905c45f )
+  + [SplitChunksPlugin 私房菜](https://juejin.im/post/5edd942af265da76f8601199)
 
 ### Babel
 
@@ -238,7 +246,21 @@
 
 ## 算法
 
+树，栈，队列等，中等、低难度为主
 
+## 性能优化
+
+可以从四个层面复习，分别从网络资源优化，HTTP 请求层面的优化，JS 优化，渲染层面的优化展开
+
+## 项目
+
++ 木牛第三方接入页面问题，是否可以调整为多页面打包
++ JSON schema 配置型表单 （深入优化的部分？）
+  + 是否可以拆成独立依赖包？
+  + 是否需要兼容多UI库？
+  + 不同项目中主题定制是否方便？
+  + 是否有可优化配置的点？
++ 木牛重构（结合设计模式等等？）
 
 ## 简历
 

@@ -4,9 +4,11 @@
 
 浏览器是一个 JS 的运行时环境，基于 JS 解释器的同时，又增加了许多环境相关的内容。
 
+BOM（浏览器对象模型）：window（核心）、History、Navigator、location、screen（表明客户端的能力）
+
 ## window
 
-全局作用域下声明的变量和内容都会变成 window 对象下的属性。
+全局作用域下声明的变量**（特指 var ）**和内容都会变成 window 对象下的属性。
 
 ```js
 var num = 1
@@ -17,7 +19,7 @@ console.log(window.num) // 1
 
 二者的前两个参数相同，第一个是回调函数，第二个是等待执行的时间。它们都返回一个 id，传入 clearTimeout 和 clearInterval 都可以清楚该定时操作。
 
-如果此时队列中没有内容，则会立即执行此回调函数，如果此时队列中有内容的话，则会等待内容执行完成之后再执行此函数。(所以即使等待时间结束，也不是立刻执行这个回调函数的！)
+**如果此时队列中没有内容，则会立即执行此回调函数**，如果此时队列中有内容的话，则会等待内容执行完成之后再执行此函数。(所以即使等待时间结束，也不是立刻执行这个回调函数的！)
 
 对于 setInterval，仅当定时器没有其他代码实例时，才会将定时器代码添加到队列中。在 setInterval 中如果回调函数执行过长，会存在某个任务丢失的情况。这种情况可以使用setTimeout来模拟setInterval。
 
@@ -55,9 +57,11 @@ prompt 可以输入一段文字并返回
 
 ### 选择器
 
-API：`getElementById`、 `getElementsByClassName`、`getElementsByTabName`、`querySelector`、`querySelectorAll` 等
+API：`getElementById`、 `getElementsByClassName`、`getElementsByTagName`、`querySelector`、`querySelectorAll` 等
 
 `getElementsByTabName`等返回多个 node 节点的函数返回值**不是数组**，而是浏览器实现的一种数据结构。
+
+获取所有标签：`docuemnt.querySelectorAll('*')、document.getElementsByTagName('*')`
 
 ### 创建元素
 
@@ -87,7 +91,7 @@ link：返回所有带 href 属性的 a 标签
 + insertBefore(node, referenceNode)：将节点插入变为参考节点的前一个同胞节点。参数为要插入的节点和作为参照的节点。参照节点为null，则与 appendChild 相同。
 + replaceChild(newNode, node)：newNode回替换 node 节点，将其删除。
 + removeChild(node)：删除节点
-+ cloneNode(boolean)：创建节点复制。boolean 为 true 是深拷贝，复制节点及其下属整个子节点树，false 则为浅复制，仅复制节点本身。
++ cloneNode(boolean)：创建节点复制。boolean 为 true 是深拷贝，返回复制节点及其下属整个子节点树，false 则为浅复制，仅返回复制节点本身。
 
 ### Element
 
@@ -139,7 +143,7 @@ back：加载历史列表中前一个 URL
 
 forward：加载历史列表中的下一个 URL
 
-go：加载历史列表中的某个具体页面
+go：加载历史列表中的某个具体页面，负值表示后退，正值表示前进。不填默认为0，即重载当前页面
 
 pushState：替换地址栏地址，**并加入 history 列表**，不刷新页面
 
@@ -273,7 +277,7 @@ btn.onclick = function() {
 }
 ```
 
-如果是 attachevent 定义的事件，则也是通过传入回调函数中。
+如果是 attachEvent 定义的事件，则也是通过传入回调函数中。
 
 | 属性/方法    | 类型    | 含义                                                         |
 | ------------ | ------- | ------------------------------------------------------------ |
@@ -343,7 +347,7 @@ var eventHandler = {
 
 ## XMLHttpRequest
 
-ajax 技术的核心是 XMLHttpRequest 对象，它能够以异步方式从服务端湖区信息，不必刷新页面。
+ajax 技术的核心是 XMLHttpRequest 对象，它能够以异步方式从服务端获取信息，不必刷新页面。
 
 ```js
 var xhr = new XMLHttpRequest()
@@ -396,17 +400,18 @@ xhr 实例上还有一些方法和属性。
 
 | 属性/方法          | 说明                                   |
 | ------------------ | -------------------------------------- |
-| responseText       | 监听 readyState 的变化来判断当前请求的 |
+| responseText       | 响应主体返回的文本                     |
+| readyState         | 监听 readyState 的变化来判断当前请求的 |
 | status             | 响应的 HTTP 状态码                     |
 | statusText()       | HTTP 状态说明                          |
-| getRequestHeader() | 获取服务区返回的 header                |
+| getRequestHeader() | 获取服务器返回的 header                |
 
 完整发送请求的过程如下：
 
 ```js
 var xhr = new XMLHttpRequest()
 
-xhr.onreadStatuschange = function () {
+xhr.onreadyStatuschange = function () {
   if (xhr.readyStatus !== 4) return
   if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
     alert(xhr.responseText)
