@@ -128,6 +128,8 @@ cleanupDeps () {
 }
 ```
 
+### Proxy 和 Object.defineProperty 的对比 （引申为后者的缺点、proxy 的优势或与 Vue 3 的对比）
+
 ### next-tick的实现
 
 #### 作用
@@ -215,8 +217,6 @@ export function queueWatcher (watcher: Watcher) {
 
 ### 什么是 VDOM，使用 VDOM 的意义
 
-### Proxy 和 Object.defineProperty 的对比 （引申为后者的缺点、proxy 的优势或与 Vue 3 的对比）
-
 ### keep-alive 的实现
 
 ### Vue 的事件机制（emit/on/once/off）
@@ -227,9 +227,90 @@ export function queueWatcher (watcher: Watcher) {
 
 ### 编译原理
 
-### key 的作用
+### Diff 算法 (组件的更新)
 
-### Diff 算法
+当数据更新时，会触发 watcher 的回调函数，对于渲染 watcher，回调函数再次调用了 patch 方法，传入了旧 vnode 与当前新的 vnode。
+
+在 patch 方法中，走得是和初次渲染不同的分支逻辑。首先判断新旧 vnode 是否相同：
+
+```js
+function sameVnode (a, b) {
+  return (
+    a.key === b.key && (
+      (
+        a.tag === b.tag &&
+        a.isComment === b.isComment &&
+        isDef(a.data) === isDef(b.data) &&
+        sameInputType(a, b)
+      ) || (
+        isTrue(a.isAsyncPlaceholder) &&
+        a.asyncFactory === b.asyncFactory &&
+        isUndef(b.asyncFactory.error)
+      )
+    )
+  )
+}
+```
+
+即判断了 tag、key 等。
+
+#### 新旧节点不相同
+
+这种情况下会直接替换已经存在的节点
+
++ 创建新节点
+
+这里以旧节点为参考节点，调用 createElm 方法。
+
++ 更新父的占位符节点
++ 删除旧节点
+
+#### 新旧节点相同
+
+新旧节点相同时会调用 patchVnode 方法。
+
++ 调用 prepatch 钩子，更新 vnode 实例属性
+
++ 调用 update 钩子，执行 module 及用户自定义的 update 钩子函数
+
++ patch 过程
+
+  + 如果是一个文本节点，则直接替换文本内容
+  + 如果不是文本节点，判断是否 child vnode 是否存在
+    + 存在且不相等的情况下，调用 updateChildren 方法进行 diff 对比
+    + 如果只有新 ch 存在，则表示不需要旧节点，如果旧节点是文本节点，将其文本清除。然后将 ch 批量插入到新节点 elm 下
+    + 如果只有 oldCh 存在，表示更新的节点为空，则直接将旧节点移除
+
++ 调用 postpatch 钩子函数，执行组件自定义的钩子函数
+
+#### Diff
+
+该算法比较的内核在于找到新旧节点中相同的节点，**实现节点的复用**。这里的寻找是指相同层级且有相同父级节点的情况。
+
+元素级别的 diff 是通过 updateChildren 方法进行更新。当新旧节点的字节点都存在且不相等的情况下调用。
+
+首先定义了四个索引位置及其对应位置的 vnode，分别是新旧字节点的头尾两个节点。
+
+整个过程中通过 while 循环遍历，核心逻辑是通过对比新旧节点的字节点列表，找出列表中相同的节点，将相同的旧节点移动到新的位置上。如果旧节点列表中不存在新节点，则创建新节点。最后删除旧列表中的旧节点。  
+
+具体的过程如下：
+
++ 创建新旧列表的头尾索引。
++ 进行 while 循环，条件是 oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx
+  + 如果 旧头 和 新头 相同，调用 patchVnode，二者 index 自增
+  + 如果 旧尾 和 新尾 相同，调用 patchVnode，二者 index 自减
+  + 如果 旧头 和 新尾 相同，调用 patchVnode，并将 旧头 插入到 旧尾 位置之后，旧头增，新尾减
+  + 如果 旧尾 和 新头 相同，调用 patchVnode，并将 旧尾 插入到 旧头 位置之前，旧尾减，新头增
+  + 如果不满足以上条件，则会尝试在 旧头 到 旧尾 之间找到和 新头 相同的节点，如果存在，则调用 patchVnode并将其插入到 旧头 位置之前；若不存在则创建新的元素插入 旧头 之前，新头增。
++ 循环结束后，如果 旧头 大于 旧尾，则说明**最新的** 新头 与 新尾 之间的节点是旧节点列表中不存在的，需要将其添加到 DOM 中；如果 新头 大于 新尾，则说明**最新的** 旧头 和 旧尾 之间这些节点是新列表没有的，需要将其从 DOM 中删除。
+
+### key 的作用（为什么不要用 index）
+
+key 作为唯一的标记，可以让整个 diff 操作更快速准确。准确体现在 vnode 对比时可以避免就地复用的情况，保证渲染的准确性。例如列表中每一行都包含一个文本输入框，删除中间某一行后，文本库的内容异常。
+
+在 diff 过程中四种匹配方式都没有命中的情况下，会生成以 key 为键值的 map 对象来获取对应的节点，这种方式比不设置 key 遍历节点来的快速。
+
+### Vue3 中的 Diff
 
 ## 应用层
 
