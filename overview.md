@@ -175,11 +175,15 @@
   2. fs sf
 + Vue3
   + [Vue3 的响应式和以前有什么区别，Proxy 无敌？](https://juejin.im/post/5e92d863f265da47e57fe065)
+  + [细致分析，尤雨溪直播中提到 vue3.0 diff 算法优化细节](https://juejin.im/post/5e9ee8a6f265da47b27da28c)
 + 相关题目
   +  [2020年大厂面试指南 - Vue篇](https://juejin.im/post/5e4d24cce51d4526f76eb2ba)
   +  [为什么Vue中不要使用index作为key](https://juejin.im/post/5e8694b75188257372503722)
   +  [想用Vuejs突破20K必备的热门面试题](https://juejin.im/post/5e6b414bf265da574657ec6d)
   +  [12道高频原理面试题](https://juejin.im/post/5e04411f6fb9a0166049a073)
+  +  [30 道 Vue 面试题，内含详细讲解（涵盖入门到精通，自测 Vue 掌握程度）](https://juejin.im/post/5d59f2a451882549be53b170)
+  +  [在阿里我是如何当面试官的（持续更新）](https://juejin.im/post/5e6ebfa86fb9a07ca714d0ec)
+  +  
 
 ### React
 
