@@ -8,7 +8,10 @@
 
 ### 生命周期的理解（各阶段做了什么，在什么时机触发）
 
-#### 有哪些生命周期
++ beforeDestroy
+  + 解绑自定义事件
+  + 销毁定时器
+  + 解绑自定义 DOM 事件
 
 #### 父子组件生命周期执行顺序（结合源码实现）
 
@@ -133,6 +136,12 @@ cleanupDeps () {
 ```
 
 ### Proxy 和 Object.defineProperty 的对比 （引申为后者的缺点、proxy 的优势或与 Vue 3 的对比
+
+#### Object.defineProperty 缺点
+
++ 深度监听需要深度递归，一次性计算量大
++ 无法监听新增或删除属性 
++ 无法监听数组操作方法
 
 #### proxy 的优劣
 
@@ -283,7 +292,13 @@ export function queueWatcher (watcher: Watcher) {
 
 如果 Vue.config.async 为 false，则也会同步的执行 flushSchedulerQueue，而不是在下一个 tick。
 
-### 什么是 VDOM，使用 VDOM 的意义
+### 什么是 VDOM，使用 VDOM 的意义 （待完善）
+
+背景： DOM 的操作非常耗性能。
+
+解决方案：JS 计算的执行速度较快， Vdom 是通过使用 js 来模拟 DOM 结构，计算出最小的变更，来操作 DOM。
+
+JS 具体结构： 可以通过 tag（标签）、props（属性、样式、事件等）、children（子元素） 
 
 ### v-model 的实现
 
@@ -314,6 +329,12 @@ export function queueWatcher (watcher: Watcher) {
   执行结果包裹在 with 语句中。接着会通过 new Function 的方式将其转换为可执行函数赋值给 vm.options.render，当组件执行 vm._render 的时候，会执行这个 render 函数，vnode = render.call(vm._renderProxy, vm.$createElement) 生成 VNode。
 
 ### Diff 算法 (组件的更新)
+
+原则
+
++ 只比较同一层级，不跨级比较
++ tag 不同，之间删除重建，不会再进行深度比较
++ tag 和 key 相同，两者都相同，则认为是相同节点，不再进行深度比较
 
 当数据更新时，会触发 watcher 的回调函数，对于渲染 watcher，回调函数再次调用了 patch 方法，传入了旧 vnode 与当前新的 vnode。
 
@@ -392,7 +413,7 @@ function sameVnode (a, b) {
 
 ### key 的作用（为什么不要用 index）
 
-key 作为唯一的标记，可以让整个 diff 操作更快速准确。准确体现在 vnode 对比时可以避免就地复用的情况，保证渲染的准确性。例如列表中每一行都包含一个文本输入框，删除中间某一行后，文本库的内容异常。
+在 diff 算法中会用到 tag 和 key 节点是否相同的判断，key 作为唯一的标记，可以让整个 diff 操作更快速准确。准确体现在 vnode 对比时可以避免就地复用的情况，保证渲染的准确性。例如列表中每一行都包含一个文本输入框，删除中间某一行后，文本库的内容异常。
 
 在 diff 过程中四种匹配方式都没有命中的情况下，会生成以 key 为键值的 map 对象来获取对应的节点，这种方式比不设置 key 遍历节点来的快速。
 
@@ -439,6 +460,18 @@ key 作为唯一的标记，可以让整个 diff 操作更快速准确。准确�
 + props
 + parent / children 实例对象
 
+### 异步组件
+
+针对本身较大的组件，抽离为异步组件
+
+### Composition API 如何解决 Mixin 带来的问题
+
+mixin 问题
+
++ 变量来源不明确，不利于代码阅读
++ 多个 mixin 可能会造成命名冲突
++ mixins 和组件可能会出现多对多的关系，复杂度高，维护困难
+
 ### 封装一个简易的组件库（参考 Element）
 
 + [实现一套组件库](https://juejin.im/post/5e200ee86fb9a02fdd38986d)
@@ -457,6 +490,11 @@ key 作为唯一的标记，可以让整个 diff 操作更快速准确。准确�
 
 ## 框架层 
 
-### MVC/MVVM 的理解
+### MVC/MVVM 的理解（待完善）
+
++ 传统组件需要维护更新 DOM ，Vue 等框架可以通过数据来驱动视图，使开发人员聚焦于数据层，不需要去在 DOM 过于复杂的情况下维护
++ View （DOM）、ViewModel（Vue 各种事件来改变 model ，从而驱动视图更新）、Model（JS Object）
+
+### 框架解决了什么问题
 
 ### 与 React 的对比
