@@ -302,9 +302,21 @@ JS 具体结构： 可以通过 tag（标签）、props（属性、样式、事�
 
 ### v-model 的实现
 
+本质是一个语法糖，会在运行时作一些优化（输入法事件）
+
+实现的本质是通过在 parse addProp 和 addHandler 方法添加 prop 和 执行事件，相当于传入了 value 的 prop，以及监听了 input 事件。
+
+另外在运行时 patch 阶段执行 directive module 钩子的时候，会额外监听 compositionstart 和 compositionend 事件，解决之道输入法开始输入汉字时而非刚输入字母时就触发事件的问题。
+
+#### 组件  v-model 的实现
+
+在 parse 阶段相同，区别在于 codegen 阶段，通过调用 genComponentModel 方法。
+
+在 编辑阶段会生成一个 model 对象，包含 value、callback、expression，用于运行时阶段将其转换为 props 和 events。
+
 ### keep-alive 的实现
 
-+ 实现
++  实现
 + 对组件的渲染的生命周期有什么影响 （active）
 + 有哪些特性
 
