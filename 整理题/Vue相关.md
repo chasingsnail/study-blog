@@ -366,6 +366,14 @@ with(this){
 + 对组件的渲染的生命周期有什么影响 （active）
 + 有哪些特性
 
+在 keep-alive 初始化阶段，会调用它的 render 方法生成 vnode。在 render 方法中获取到子组件 A 的 vnode （本质上是一个 slot 普通插槽，因此其在父组件渲染过程中已经生成好 vnode），将其缓存在 cache 中，并设置其 vnode.data.keepAlive 为 true。接着是 patch 子组件，接着与普通节点渲染没有区别
+
+当进行组件切换时，在 patch 过程中会执行 prepatch 钩子，重新解析 keep-alive 的 slot ，执行组件的强制渲染。此时会再次执行 keep-alive 组件的 render，拿到 B 组件的 vnode 并也将它存在 cache 中。执行 patchNode 过程（删除旧的A，创建新的B）。 
+
+当再切换回 A 组件时，会再一次进入 keep-alive 组件的 render 方法中，此时会从 cache 中读取 A 组件的 vnode。 接着进入 patch 阶段， 在创建组件节点，不再进入创建组件实例并且 mount 挂载的过程，而是直接执行 prepatch 钩子，之后直接将 A 组件插入。接着执行 active 相关生命周期。
+
+总结，它的实现通过了自定义 render 并且利用了插槽。通过 cache 了组件的 vnode，直接拿到组件实例，获取组件 dom 和状态
+
 ### Vue 的事件机制（emit/on/once/off）
 
 ### Vue 的渲染过程
