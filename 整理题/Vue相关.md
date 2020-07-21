@@ -558,6 +558,57 @@ mixin 问题
 
 + hash 与 history 的对比
 
+通过 Vue.mixin 全局混入了 beforeCreate 和 destroy 钩子。因此在每个组件执行 beforeCreate 时，都会执行 router.init 方法，将当前实例放进 apps 中。
+
+#### matcher 
+
+matcher 是一个对象，暴露了两个方法，addRoutes 和 match 。在执行 transitionTo 方法前，会调用 matcher 的 match 方法返回 route。
+
+matcher 中首先会初始化遍历整个 routes 配置，执行 addRouteRecord 方法，给 pathMap（path to record 映射），nameMap（name to record 映射）添加记录，可以让我们通过 name 和 path 快速找到对应的 routeRecord。
+
+addRoutes 方法可以动态添加路由配置，本质上是通过传入新的 routes 配置，执行修改pathList`、`pathMap`、`nameMap 的值。
+
+match 方法用于找到匹配路径的 Route，并且在路由切换时也会触发该方法。通过 name 和 path 从pathMap`、`nameMap 中获取对应的记录，最终返回一个新的 `Route` 对象。所有的 `Route` 最终都会通过 `createRoute` 函数创建，并且它最后是不可以被外部修改的。
+
+#### 路径切换
+
+导航守卫
+
+当切换路由线路时，会先拿到新的路径，执行 confirmTransition 方法。这个过程中，会触发一系列导航守卫钩子。通过异步函数队列依次执行。
+
+按照顺序如下：
+
+1. 在失活的组件里调用离开守卫。
+2. 调用全局的 `beforeEach` 守卫。
+3. 在重用的组件里调用 `beforeRouteUpdate` 守卫
+4. 在激活的路由配置里调用 `beforeEnter`。
+5. 解析异步路由组件。
+6. 在被激活的组件里调用 `beforeRouteEnter`。（该钩子函数执行时组件还未被创建，可通过 next 回调函数的第一个参数来访问）
+7. 调用全局的 `beforeResolve` 守卫。
+8. 调用全局的 `afterEach` 钩子。
+
+url
+
+通过 router-link 点击路由跳转时，会执行 router.push 方法，最终执行 transitionTo 方法作路径切换，在切换完成的回调中执行 pushHash 函数，调用浏览器原生 history 的 pushState 或 replaceState 更新浏览器url地址，并将当前 url 压入历史栈中。
+
+在 history 的初始化过程中，会设置一个监听器，通过监听 popstate 或 hashchange 事件来判断浏览器的前进后退按钮出发。
+
+浏览器路径变化：点击跳转时，是调用浏览器原生pushState 或 replaceState 更新浏览器url地址；而操作浏览器前进后退，直接拿到更新后的 url，不需要手动更新 url。
+
+组件
+
++ router-view
+
+  由于在初始化时，根 Vue 实例的 `_route` 属性定义成响应式的。在 render 过程中，都会会访问父组件上的 $route 属性。最终触发这个属性的 getter，收集到了渲染 watcher。在执行完 transitionTo （路径切换）后，会修改这个响应式属性，触发了它的 setter，因此通知渲染 watcher 更新，重新执行了 router-view 组件的 render 渲染。
+
++ router-link
+
+   在 render 过程中，首先对路由进行解析，针对标签上特定的 class 做处理。通过监听点击事件（或其他 prop 传入的事件类型）执行函数方法，最终调用 router.push 或 router.replace 方法进行路由跳转。
+
+#### 总结
+
+在进行路由切换时，会把当前的线路切换到目标的线路，在切换过程中会执行一系列导航守卫钩子函数，并且更改 url，同时最后渲染对应的组件。切换完成后把目标的路由切换为当前路由，用作下一次路径切换的依据。
+
 ## 框架层 
 
 ### MVC/MVVM 的理解（待完善）
