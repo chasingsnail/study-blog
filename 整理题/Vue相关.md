@@ -554,6 +554,50 @@ mixin 问题
 
 ### Vuex 的实现
 
+#### install
+
+install 阶段通过 Vue.mixin 给每个组件混入 beforeCreate 钩子，作用是把实例化 store 对象的实例保存在所有组件的 `this.$store` 中，让我们可以在组件中通过 `this.$store` 访问到这个实例。
+
+#### 实例化
+
++ 初始化模块
+
+根据配置，首先获取根模块 root module，通过 register 遍历当前模块中所有的 modules，按 key 作为 path，递归调用 register，最终就建立一颗完整的模块树。
+
++ 安装模块
+
+  完成了模块下的 `state`、`getters`、`actions`、`mutations` 的初始化工作，并且通过递归遍历的方式，就完成了所有子模块的安装工作。拼接上了各自的 namespace
+
++ resetStoreVM
+
+  建立 getters 和 state 的联系。遍历 wrapperdGetters，生成对应的 computed 对象。并初始化一个 vue 实例将该对象赋值给计算属性。并且在实例对象的 data 中定义了` $$state`。当访问 store.getters 上的某一个 getter 时，实际上是访问了 vue 实例的计算属性，因此会执行相应的函数从而访问到了实例的 data 中的 state( store.state 实际上是调用了 get state ,访问了 `data.$$state`)。当 store.state 变化时，再次访问 store.getters 就会重新获取新的 state 数值。这样就建立了一个依赖的关系。
+
+  ```js
+  get state () {
+      return this._vm._data.$$state
+  }
+  ```
+
+### API
+
++ mutation
+
+  在调用 commit 出发 mutation 时，首先找到对应的 module 的 mutation，通过 forEach 的形式遍历触发 handler
+
++ action
+
+  通过 dispatch 调用，在 action 注册时，会将返回的执行结果包装成一个 promise，在最终调用时，会通过 promise.all 的形式来触发。
+
+  action 方法第一个参数 context 并不等同于 store 实例本身，其内部 dispatch 、commit等方法是挂载在local对象下的，这个local实际上是本地上下文环境，在含有 namespce 的 module 中，在执行dispatch 或 commit 时会将 namespace 和 type 进行一个拼接，实际上触发的是对应module 的 dispatch 和 commit 而非 store 全局的 dispatch commit，因此module 中的 store 是模块的局部状态。
+
++ mapState、mapGetters、mapMutations、mapActions
+
+  内部主要依赖访问 this.$store 获得对应的 module 下的 state 和 getters，返回相应的值或执行相关 handler。
+
++ 动态模板更新（模块动态注册功能使得其他 Vue 插件可以通过在 store 中附加新模块的方式来使用 Vuex 管理状态。）
+
+  模块的动态注册实现和初始化类似，首先注册拓展的模块树，接着同样是安装模块、resetStoreVM重新维护 state。
+
 ### Vue-router 的整体实现
 
 + hash 与 history 的对比
