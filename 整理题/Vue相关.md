@@ -287,13 +287,27 @@ export function queueWatcher (watcher: Watcher) {
 
 ### v-model 的实现
 
+
+
 ### keep-alive 的实现
 
 + 实现
 + 对组件的渲染的生命周期有什么影响 （active）
 + 有哪些特性
 
+### Vue event 事件
+
+事件分别在 parse 和 codegen 过程中构成，运行时在 patch 中执行各种 module 的钩子时挂载了定义的事件。
+
+原生事件最终通过 addEventListener 和 removeEventListener 来实现绑定和解绑。
+
+组件的自定义事件是通过 Vue 定义的事件中心来实现的 （$once / $on）
+
 ### Vue 的事件机制（emit/on/once/off）
+
+事件机制是典型的事件中心的实现。把所有的事件听过 vm.events 存储，当执行 $on 时，按事件名称 event 将回调函数 fn push 到 event 对应的数组中。在通过 $emit 触发时，找到 event 对应的所有回调函数，遍历执行。 当调用 $off 时，清除制定的回调函数。
+
+这也是父子组件通信的实现，它的回调函数是定义在父组件中，因此当通过 $emit 派发事件是，子组件的实例监听到了这个事件后执行了它的回调函数，即定义在父组件中的方法。 
 
 ### Vue 的渲染过程
 
