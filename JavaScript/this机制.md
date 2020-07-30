@@ -90,7 +90,7 @@ new绑定是作为构造函数调用。在new的时候，会发生以下过程�
 1. 创建一个新的对象
 2. 将构造函数的作用域赋值给这个新的对象（this指向该对象）
 3. 执行构造函数中的代码
-4. 若函数没有返回对象(Object)，则会返回该新对象
+4. 若函数没有返回对象(Object)，否则（return 基本类型、无 `return` 或 `return this`）会返回该新对象
 ```js
 function Foo(a) {
     this.a = a
@@ -98,7 +98,28 @@ function Foo(a) {
 let bar = new Foo(1)
 console.log(bar.a) // 2
 ```
+```js
+var slice = Array.prototype.slice
+// 模拟 new 关键字
+function createNew (constructor, ...arg) {
+  let o = new Object()
+  o.__ptoto__ = constructor.prototype
+  // Foo.call(this)
+  constructor.apply(o, arg)
+  return o
+}
+
+function Foo(name) {
+  this.foo = name
+}
+
+var foo = createNew(Foo, 'hello')
+```
+
+
+
 ## 改变this的指向
+
 能够改变this指向的方法除了上述提到的使用apply方法和通过new实例化对象之外。还有存在几种情况。
 ### setTimeout
 setTimeout的回调函数中，this使用的是默认绑定，即指向全局对象。

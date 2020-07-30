@@ -8,7 +8,10 @@
 
 ### 生命周期的理解（各阶段做了什么，在什么时机触发）
 
-#### 有哪些生命周期
++ beforeDestroy
+  + 解绑自定义事件
+  + 销毁定时器
+  + 解绑自定义 DOM 事件
 
 #### 父子组件生命周期执行顺序（结合源码实现）
 
@@ -133,6 +136,12 @@ cleanupDeps () {
 ```
 
 ### Proxy 和 Object.defineProperty 的对比 （引申为后者的缺点、proxy 的优势或与 Vue 3 的对比
+
+#### Object.defineProperty 缺点
+
++ 深度监听需要深度递归，一次性计算量大
++ 无法监听新增或删除属性 
++ 无法监听数组操作方法
 
 #### proxy 的优劣
 
@@ -283,17 +292,89 @@ export function queueWatcher (watcher: Watcher) {
 
 如果 Vue.config.async 为 false，则也会同步的执行 flushSchedulerQueue，而不是在下一个 tick。
 
-### 什么是 VDOM，使用 VDOM 的意义
+### 什么是 VDOM，使用 VDOM 的意义 （待完善）
+
+背景： DOM 的操作非常耗性能。
+
+解决方案：JS 计算的执行速度较快， Vdom 是通过使用 js 来模拟 DOM 结构，计算出最小的变更，来操作 DOM。
+
+JS 具体结构： 可以通过 tag（标签）、props（属性、样式、事件等）、children（子元素） 
 
 ### v-model 的实现
 
+本质是一个语法糖，会在运行时作一些优化（输入法事件）
 
+实现的本质是通过在 parse addProp 和 addHandler 方法添加 prop 和 执行事件，相当于传入了 value 的 prop，以及监听了 input 事件。
+
+另外在运行时 patch 阶段执行 directive module 钩子的时候，会额外监听 compositionstart 和 compositionend 事件，解决之道输入法开始输入汉字时而非刚输入字母时就触发事件的问题。
+
+#### 组件  v-model 的实现
+
+在 parse 阶段相同，区别在于 codegen 阶段，通过调用 genComponentModel 方法。
+
+在 编辑阶段会生成一个 model 对象，包含 value、callback、expression，用于运行时阶段将其转换为 props 和 events。
+
+### slot 的实现
+
+普通插槽
+
+父组件编译节点会添加一个 slot 属性并指向定义的 slotTarget（slot="slotTarget"）。
+
+子组件遇到 slot 标签时，会给对应的 ast 元素节点添加 slotName属性，在 codegen 计算，会判断是否为 slot 标签，执行 genSlot 方法。
+
+父组件完成编译后会生成插槽节点对应的 vnode，数据的作用域是父组件实例。在子组件 init 时，维护了一个 slots 对象按插槽名称 key 获取父组件中对应的编译完成后的 child 节点 Vnode 。在生成 slot 节点时，可以借助这个 slots 对象，拿到已经渲染好的 vnode。
+
+作用域插槽
+
+在父组件渲染时不会生成对应的 vnode，而是在父组件的 Vnode 中保留了一个 scopedSlots 对象，通过插槽的 name 存储对应的渲染方法。在编译渲染子组件的过程中会去获取父组件 vnode 中保留的对象，并执行这个渲染函数，生成 vnodes，因为这是在子组件的环境中执行的，因此对应的数据作用是子组件的实例。
+
+```js
+// 子组件编译
+function genSlot (el: ASTElement, state: CodegenState): string {
+  const slotName = el.slotName || '"default"'
+  const children = genChildren(el, state)
+  let res = `_t(${slotName}${children ? `,${children}` : ''}`
+  const attrs = el.attrs && `{${el.attrs.map(a => `${camelize(a.name)}:${a.value}`).join(',')}}` // 获取传入的 slotProps 数据
+  const bind = el.attrsMap['v-bind']
+  if ((attrs || bind) && !children) {
+    res += `,null`
+  }
+  if (attrs) {
+    res += `,${attrs}`
+  }
+  if (bind) {
+    res += `${attrs ? '' : ',null'},${bind}`
+  }
+  return res + ')'
+}
+
+// 生成结果
+with(this){
+  return _c('div',
+    {staticClass:"child"},
+    [_t("default",null,
+      {text:"Hello ",msg:msg} // 子组件中对应的 slotProps 数据
+    )],
+  2)}
+```
+
+最主要的区别在于数据的作用于会根据他们 vnode 渲染时机的不同而不同，前者是在父作用域生成好了 vnodes，后者是在子组件作用域中才调用渲染函数生成 vnode。
 
 ### keep-alive 的实现
 
-+ 实现
++  实现
 + 对组件的渲染的生命周期有什么影响 （active）
 + 有哪些特性
+
+
+在 keep-alive 初始化阶段，会调用它的 render 方法生成 vnode。在 render 方法中获取到子组件 A 的 vnode （本质上是一个 slot 普通插槽，因此其在父组件渲染过程中已经生成好 vnode），将其缓存在 cache 中，并设置其 vnode.data.keepAlive 为 true。接着是 patch 子组件，接着与普通节点渲染没有区别
+
+当进行组件切换时，在 patch 过程中会执行 prepatch 钩子，重新解析 keep-alive 的 slot ，执行组件的强制渲染。此时会再次执行 keep-alive 组件的 render，拿到 B 组件的 vnode 并也将它存在 cache 中。执行 patchNode 过程（删除旧的A，创建新的B）。 
+
+当再切换回 A 组件时，会再一次进入 keep-alive 组件的 render 方法中，此时会从 cache 中读取 A 组件的 vnode。 接着进入 patch 阶段， 在创建组件节点，不再进入创建组件实例并且 mount 挂载的过程，而是直接执行 prepatch 钩子，之后直接将 A 组件插入。接着执行 active 相关生命周期。
+
+总结，它的实现通过了自定义 render 并且利用了插槽。通过 cache 了组件的 vnode，直接拿到组件实例，获取组件 dom 和状态
+
 
 ### Vue event 事件
 
@@ -302,6 +383,7 @@ export function queueWatcher (watcher: Watcher) {
 原生事件最终通过 addEventListener 和 removeEventListener 来实现绑定和解绑。
 
 组件的自定义事件是通过 Vue 定义的事件中心来实现的 （$once / $on）
+
 
 ### Vue 的事件机制（emit/on/once/off）
 
@@ -328,6 +410,12 @@ export function queueWatcher (watcher: Watcher) {
   执行结果包裹在 with 语句中。接着会通过 new Function 的方式将其转换为可执行函数赋值给 vm.options.render，当组件执行 vm._render 的时候，会执行这个 render 函数，vnode = render.call(vm._renderProxy, vm.$createElement) 生成 VNode。
 
 ### Diff 算法 (组件的更新)
+
+原则
+
++ 只比较同一层级，不跨级比较
++ tag 不同，之间删除重建，不会再进行深度比较
++ tag 和 key 相同，两者都相同，则认为是相同节点，不再进行深度比较
 
 当数据更新时，会触发 watcher 的回调函数，对于渲染 watcher，回调函数再次调用了 patch 方法，传入了旧 vnode 与当前新的 vnode。
 
@@ -408,7 +496,9 @@ function sameVnode (a, b) {
 
 key 作为唯一的标记，可以让整个 diff 操作更快速准确。在 vnode 对比时可以避免**就地复用**的情况，让我们能够明确知道新旧 children 中节点的映射关系，能够快速找到旧节点中 key 相同可以复用的节点。
 
- 使用 index 作为 key 在某些情况例如长列表删除中间行的场景下，如果列表依赖子组件的状态，会让 Vue 复用错节点。例如列表中每一行都包含一个文本输入框，删除中间某一行后，文本输入的内容异常，就会出现错误复用的结果。
+使用 index 作为 key 在某些情况例如长列表删除中间行的场景下，如果列表依赖子组件的状态，会让 Vue 复用错节点。例如列表中每一行都包含一个文本输入框，删除中间某一行后，文本输入的内容异常，就会出现错误复用的结果。
+
+在 diff 算法中会用到 tag 和 key 节点是否相同的判断，key 作为唯一的标记，可以让整个 diff 操作更快速准确。准确体现在 vnode 对比时可以避免就地复用的情况，保证渲染的准确性。例如列表中每一行都包含一个文本输入框，删除中间某一行后，文本库的内容异常。
 
 引申
 
@@ -460,6 +550,18 @@ key 作为唯一的标记，可以让整个 diff 操作更快速准确。在 vno
 + props
 + parent / children 实例对象
 
+### 异步组件
+
+针对本身较大的组件，抽离为异步组件
+
+### Composition API 如何解决 Mixin 带来的问题
+
+mixin 问题
+
++ 变量来源不明确，不利于代码阅读
++ 多个 mixin 可能会造成命名冲突
++ mixins 和组件可能会出现多对多的关系，复杂度高，维护困难
+
 ### 封装一个简易的组件库（参考 Element）
 
 + [实现一套组件库](https://juejin.im/post/5e200ee86fb9a02fdd38986d)
@@ -472,12 +574,112 @@ key 作为唯一的标记，可以让整个 diff 操作更快速准确。在 vno
 
 ### Vuex 的实现
 
+#### install
+
+install 阶段通过 Vue.mixin 给每个组件混入 beforeCreate 钩子，作用是把实例化 store 对象的实例保存在所有组件的 `this.$store` 中，让我们可以在组件中通过 `this.$store` 访问到这个实例。
+
+#### 实例化
+
++ 初始化模块
+
+根据配置，首先获取根模块 root module，通过 register 遍历当前模块中所有的 modules，按 key 作为 path，递归调用 register，最终就建立一颗完整的模块树。
+
++ 安装模块
+
+  完成了模块下的 `state`、`getters`、`actions`、`mutations` 的初始化工作，并且通过递归遍历的方式，就完成了所有子模块的安装工作。拼接上了各自的 namespace
+
++ resetStoreVM
+
+  建立 getters 和 state 的联系。遍历 wrapperdGetters，生成对应的 computed 对象。并初始化一个 vue 实例将该对象赋值给计算属性。并且在实例对象的 data 中定义了` $$state`。当访问 store.getters 上的某一个 getter 时，实际上是访问了 vue 实例的计算属性，因此会执行相应的函数从而访问到了实例的 data 中的 state( store.state 实际上是调用了 get state ,访问了 `data.$$state`)。当 store.state 变化时，再次访问 store.getters 就会重新获取新的 state 数值。这样就建立了一个依赖的关系。
+
+  ```js
+  get state () {
+      return this._vm._data.$$state
+  }
+  ```
+
+### API
+
++ mutation
+
+  在调用 commit 出发 mutation 时，首先找到对应的 module 的 mutation，通过 forEach 的形式遍历触发 handler
+
++ action
+
+  通过 dispatch 调用，在 action 注册时，会将返回的执行结果包装成一个 promise，在最终调用时，会通过 promise.all 的形式来触发。
+
+  action 方法第一个参数 context 并不等同于 store 实例本身，其内部 dispatch 、commit等方法是挂载在local对象下的，这个local实际上是本地上下文环境，在含有 namespce 的 module 中，在执行dispatch 或 commit 时会将 namespace 和 type 进行一个拼接，实际上触发的是对应module 的 dispatch 和 commit 而非 store 全局的 dispatch commit，因此module 中的 store 是模块的局部状态。
+
++ mapState、mapGetters、mapMutations、mapActions
+
+  内部主要依赖访问 this.$store 获得对应的 module 下的 state 和 getters，返回相应的值或执行相关 handler。
+
++ 动态模板更新（模块动态注册功能使得其他 Vue 插件可以通过在 store 中附加新模块的方式来使用 Vuex 管理状态。）
+
+  模块的动态注册实现和初始化类似，首先注册拓展的模块树，接着同样是安装模块、resetStoreVM重新维护 state。
+
 ### Vue-router 的整体实现
 
 + hash 与 history 的对比
 
+通过 Vue.mixin 全局混入了 beforeCreate 和 destroy 钩子。因此在每个组件执行 beforeCreate 时，都会执行 router.init 方法，将当前实例放进 apps 中。
+
+#### matcher 
+
+matcher 是一个对象，暴露了两个方法，addRoutes 和 match 。在执行 transitionTo 方法前，会调用 matcher 的 match 方法返回 route。
+
+matcher 中首先会初始化遍历整个 routes 配置，执行 addRouteRecord 方法，给 pathMap（path to record 映射），nameMap（name to record 映射）添加记录，可以让我们通过 name 和 path 快速找到对应的 routeRecord。
+
+addRoutes 方法可以动态添加路由配置，本质上是通过传入新的 routes 配置，执行修改pathList`、`pathMap`、`nameMap 的值。
+
+match 方法用于找到匹配路径的 Route，并且在路由切换时也会触发该方法。通过 name 和 path 从pathMap`、`nameMap 中获取对应的记录，最终返回一个新的 `Route` 对象。所有的 `Route` 最终都会通过 `createRoute` 函数创建，并且它最后是不可以被外部修改的。
+
+#### 路径切换
+
+导航守卫
+
+当切换路由线路时，会先拿到新的路径，执行 confirmTransition 方法。这个过程中，会触发一系列导航守卫钩子。通过异步函数队列依次执行。
+
+按照顺序如下：
+
+1. 在失活的组件里调用离开守卫。
+2. 调用全局的 `beforeEach` 守卫。
+3. 在重用的组件里调用 `beforeRouteUpdate` 守卫
+4. 在激活的路由配置里调用 `beforeEnter`。
+5. 解析异步路由组件。
+6. 在被激活的组件里调用 `beforeRouteEnter`。（该钩子函数执行时组件还未被创建，可通过 next 回调函数的第一个参数来访问）
+7. 调用全局的 `beforeResolve` 守卫。
+8. 调用全局的 `afterEach` 钩子。
+
+url
+
+通过 router-link 点击路由跳转时，会执行 router.push 方法，最终执行 transitionTo 方法作路径切换，在切换完成的回调中执行 pushHash 函数，调用浏览器原生 history 的 pushState 或 replaceState 更新浏览器url地址，并将当前 url 压入历史栈中。
+
+在 history 的初始化过程中，会设置一个监听器，通过监听 popstate 或 hashchange 事件来判断浏览器的前进后退按钮出发。
+
+浏览器路径变化：点击跳转时，是调用浏览器原生pushState 或 replaceState 更新浏览器url地址；而操作浏览器前进后退，直接拿到更新后的 url，不需要手动更新 url。
+
+组件
+
++ router-view
+
+  由于在初始化时，根 Vue 实例的 `_route` 属性定义成响应式的。在 render 过程中，都会会访问父组件上的 $route 属性。最终触发这个属性的 getter，收集到了渲染 watcher。在执行完 transitionTo （路径切换）后，会修改这个响应式属性，触发了它的 setter，因此通知渲染 watcher 更新，重新执行了 router-view 组件的 render 渲染。
+
++ router-link
+
+   在 render 过程中，首先对路由进行解析，针对标签上特定的 class 做处理。通过监听点击事件（或其他 prop 传入的事件类型）执行函数方法，最终调用 router.push 或 router.replace 方法进行路由跳转。
+
+#### 总结
+
+在进行路由切换时，会把当前的线路切换到目标的线路，在切换过程中会执行一系列导航守卫钩子函数，并且更改 url，同时最后渲染对应的组件。切换完成后把目标的路由切换为当前路由，用作下一次路径切换的依据。
+
 ## 框架层 
 
-### MVC/MVVM 的理解
+### MVC/MVVM 的理解（待完善）
+
++ 传统组件需要维护更新 DOM ，Vue 等框架可以通过数据来驱动视图，使开发人员聚焦于数据层，不需要去在 DOM 过于复杂的情况下维护
++ View （DOM）、ViewModel（Vue 各种事件来改变 model ，从而驱动视图更新）、Model（JS Object）
+
+### 框架解决了什么问题
 
 ### 与 React 的对比
