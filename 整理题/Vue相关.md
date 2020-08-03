@@ -8,16 +8,63 @@
 
 ### 生命周期的理解（各阶段做了什么，在什么时机触发）
 
++ beforeCreate
+
+  初始化 lifeCycle、Events，这时 data、props、methods还未初始化
+
++ created
+
+  初始化 `props`、`data`、`methods`、`watch`、`computed` 等属性完成，dom还未生成
+
++ beforeMount
+
+  在执行生成 Vnode 之前调用了 beforeMount
+
++ mounted
+
+  在执行 patch 之后，生成真实 DOM 调用 mounted 钩子
+
++ beforeUpdate
+
+  定义在渲染 watcher 的 before 方法中。
+
++ updated
+
+  watcher 的回调函数执行完成之后调用
+
 + beforeDestroy
+
+  ​	调用 $destroy 开始的时候触发，通过 patch 空 Vnode 来删除
+
   + 解绑自定义事件
   + 销毁定时器
   + 解绑自定义 DOM 事件
+
++ destroyed
+
+  执行完一系列销毁动作，包括删除子节点，删除watcher 之后 调用
+
++ activated
+
+  kee-alive 包括的组件渲染时调用
+
++ deactivated
+
+  发生在 `vnode` 的 `destory` 钩子函数
 
 #### 父子组件生命周期执行顺序（结合源码实现）
 
 ### 双向绑定的实现
 
-响应式是基于 Object.defineProperty 深度遍历对数据对象进行劫持的。每个组件都有自己的渲染 watcher 实例，在 组件渲染的过程中（严格来说是生成 VNode时），会触发数据对象属性的 getter，从而收集到相应的 watcher。在对于数据对象属性进行修改的时候，会触发对应的 setter，从而通知收集到的依赖 watcher 进行更新，将它们放置到一个缓存队列中，通过 next-tick 在下一个循环中遍历更新对应的组件渲染。
+Vue 是用了发布订阅模式，通过 Object.defineProperty 深度遍历对对象进行数据劫持的，在数据变动时派发更新通知订阅者，触发相应的回调。
+
+首先在初始化时，对数据对象进行深度遍历，给每个属性添加上 setter 和 getter，这样通过访问这个值触发 getter 收集依赖，改变某个值时，触发 setter 进行通知更新。
+
+在渲染页面的过程中，会生成 Vnode，这时会访问 data 中定义的响应式数据，由此触发数据对象相应的 getter，收集到了相关的 watcher。
+
+watcher 是一个桥梁的作用，在挂载的过程中，初始化渲染 watcher，会将自身添加到全局变量中，在之后渲染过程中，访问响应式数据触发 getter，收集 watcher。当数据变动派发更新时，会触发自身的更新方法执行绑定的回调。
+
+响应式是基于 Object.defineProperty 深度遍历对数据对象进行劫持的。在 组件渲染的过程中（严格来说是生成 VNode时），会触发数据对象属性的 getter，从而收集到相应的 watcher。在对于数据对象属性进行修改的时候，会触发对应的 setter，从而通知收集到的依赖 watcher 进行更新，将它们放置到一个缓存队列中，通过 next-tick 在下一个循环中遍历更新对应的组件渲染。
 
 ### 对数组的特殊处理
 
@@ -92,6 +139,14 @@ methodsToPatch.forEach(function (method) {
 + 作者从性能体验的性价比考虑后弃用。
 
 ### set 与 delete 的实现
+
+#### $set
+
+通过 defineReactive 来将其变为响应式，并手动调用触发依赖通知。
+
+#### del
+
+手动删除对象中的相应的值，并手动调用触发依赖通知。
 
 ### 依赖的收集与移除
 
@@ -618,7 +673,7 @@ install 阶段通过 Vue.mixin 给每个组件混入 beforeCreate 钩子，作�
   }
   ```
 
-### API
+#### API
 
 + mutation
 
