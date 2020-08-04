@@ -643,7 +643,12 @@ mixin 问题
 
 + 变量来源不明确，不利于代码阅读
 + 多个 mixin 可能会造成命名冲突
-+ mixins 和组件可能会出现多对多的关系，复杂度高，维护困难
++ mixins 和组件有着隐含的依赖关系，还可能会出现多对多的关系，复杂度高，维护困难
+
+composition API 的优势
+
++ 在导入时，需要显式命名任何状态或从组成函数返回的方法。
++ 隐含依赖关系通过必须将响应式数据显式传递给组合函数
 
 ### 封装一个简易的组件库（参考 Element）
 
@@ -703,6 +708,21 @@ install 阶段通过 Vue.mixin 给每个组件混入 beforeCreate 钩子，作�
 
 ### Vue-router 的整体实现
 
+#### 前置知识
+
++ hash mode 
+
+  监听 hashchange 事件
+
++ history mode  利用了 History 对象实现
+
+  监听 popstate 用于处理前进后退时调用对应的回调函数
+
+  HTML5引入了 history.pushState() 和 history.replaceState() 方法，history.pushState() 和 history.replaceState() 均接收三个参数（state, title, url）；
+
+  + history.pushState() 在保留现有历史记录的同时，将 url 加入到历史记录中。
+  + history.replaceState() 会将历史记录中的当前页面历史替换为 url。
+
 + hash 与 history 的对比
 
 通过 Vue.mixin 全局混入了 beforeCreate 和 destroy 钩子。因此在每个组件执行 beforeCreate 时，都会执行 router.init 方法，将当前实例放进 apps 中。
@@ -746,7 +766,7 @@ url
 
 + router-view
 
-  由于在初始化时，根 Vue 实例的 `_route` 属性定义成响应式的。在 render 过程中，都会会访问父组件上的 $route 属性。最终触发这个属性的 getter，收集到了渲染 watcher。在执行完 transitionTo （路径切换）后，会修改这个响应式属性，触发了它的 setter，因此通知渲染 watcher 更新，重新执行了 router-view 组件的 render 渲染。
+  由于在初始化时，根 Vue 实例的 `_route` 属性定义成响应式的。在 render 过程中，都会会访问父组件上的 $route 属性。最终触发这个属性的 getter，收集到了渲染 watcher。在执行完 transitionTo （路径切换）后，会修改这个响应式属性，触发了它的 setter，因此通知渲染 watcher 更新，重新执行了 router-view 组件的 render 渲染，在 render 中获取到当前路由对应的组件，调用 createElement 方法渲染。
 
 + router-link
 
@@ -766,3 +786,7 @@ url
 ### 框架解决了什么问题
 
 ### 与 React 的对比
+
++ [Vue3 究竟好在哪里？（和 React Hook 的详细对比）](https://juejin.im/post/6844904132109664264)
++ [为什么说 Vue 的响应式更新精确到组件级别？（原理深度解析）](https://juejin.im/post/6844904113432444942)
+
