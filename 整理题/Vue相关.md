@@ -224,7 +224,7 @@ Vue 3 通过 reative 方法完成对数据的响应式代理。其本质是通�
 
 + 深度观测
 
-  利用了 Reflect 返回数据类型做判断，如果是一个对象，则再执行 reactive 方法。
+  利用了 Reflect 返回数据类型做判断，如果是一个对象，则再执行 reactive 方法。这样做相比于 Vue2 的数据劫持，前者仅会在 get 时才递归监听，后者在初始化时已经深度遍历劫持
 
   ```js
   const res = Reflect.get(target, key, receiver)
@@ -243,7 +243,7 @@ Vue 3 通过 reative 方法完成对数据的响应式代理。其本质是通�
   export const hasOwn = ( val, key ) => hasOwnProperty.call(val, key)
   
   const hadKey = hasOwn(target, key)
-  if (!hadKey) {
+  if (!hadKey) { // 新增的 key
     trigger(target, TriggerOpTypes.ADD, key, value)
   } else if (hasChanged(value, oldValue)) { // 判断新旧值是否相等
     trigger(target, TriggerOpTypes.SET, key, value, oldValue)
