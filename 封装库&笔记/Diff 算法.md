@@ -1,17 +1,42 @@
 纲要
 
-1. 简单介绍什么是 diff
+1. 简单介绍什么是 diff （通过表格倒叙的例子引入）
 
-2. 介绍 VNode
+2. 介绍 VNode ，简单的结构 （是否必要？）
 
-3. react diff
+3. react diff 
 
-   寻找最大索引
+   1. 如何寻找可复用的节点 -> key
+   2. 寻找最大索引
 
-4. 通过 react diff 不足引出 Vue 2.x 版本 diff
+4. 通过 react diff 不足引出（需要移动的次数过多） Vue 2.x 版本 diff
 
    1. 双端比较
-   2. Key 的作用：为什么要使用key，为何不使用 index 或 random 作为 key
+
+      1. 四个索引，while 循环，循环内多个判断
+      2. 结合例子
+      3. 对比 react 原题
+
+   2. Key 的作用
+
+      1. 判断节点是否相同函数 sameVnode
+
+      2. 为什么要使用key
+
+         1. 使用 index 的问题。 => 复用错误节点
+
+         2. random 作为 key，应用 => 强制替换元素/组件而不是重复使用它。当你遇到如下场景时它可能会很有用：
+
+            1. 完整地触发组件的生命周期钩子
+            2. 触发过渡
+
+            ```vue
+            <transition>
+              <span :key="text">{{ text }}</span>
+            </transition>
+            ```
+
+            
 
 5. Vue 3 Diff
 
