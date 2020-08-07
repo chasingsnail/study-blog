@@ -70,7 +70,7 @@ watcher 是一个桥梁的作用。每个组件实例都对应一个 **watcher**
 
 在 Vue 中无法监听到数组的变动，如通过索引值改变数组项，或直接修改数组的长度。
 
-实际上，Object.defineProperty 可以根据下标监听数组的变化，Vue 在代码层面屏蔽了这一逻辑，并且重写了数组中 splice、push 等方法。
+实际上，Object.defineProperty 可以根据下标监听数组的变化，Vue 在代码层面屏蔽了这一逻辑，并且重写了数组原型中的 splice、push 等方法。
 
 ```js
 if (Array.isArray(value)) {
@@ -200,7 +200,7 @@ cleanupDeps () {
 
 #### proxy 的优劣
 
-proxy 可以之间劫持整个对象，并返回一个新的对象。不像 Object.defineProperty 需要对每个属性进行代理。因此，Vue 3 不需要在初始化阶段递归劫持所有属性的 get
+Proxy可以直接监听对象和数组的变化，并且有多达13种拦截方法。proxy 可以之间劫持整个对象，并返回一个新的对象。不像 Object.defineProperty 需要对每个属性进行代理。因此，Vue 3 不需要在初始化阶段递归劫持所有属性的 get
 
 proxy 可以之间对数组进行操作（push、splice 等）
 
@@ -234,9 +234,9 @@ Vue 3 通过 reative 方法完成对数据的响应式代理。其本质是通�
   }
   ```
 
-+ 避免触发多次
++ 避免触发多次（监测数组时）
 
-  针对数组的操作，例如 push，会触发多次 set 的执行，同时也会引发 get 的操作。Vue 3 中在 set 时利用了 hasOwnProperty 来判断出发的 key 是否为当前自身的属性来决定是否 trigger。
+  针对数组的操作，例如 push，会触发多次 set 的执行，同时也会引发 get 的操作。Vue 3 中在 set 时利用了 hasOwnProperty 来判断出发的 key 是否为当前自身的属性来决定是否 trigger。同时也可判断新旧值是否相同。
 
   ```js
   const hasOwnProperty = Object.prototype.hasOwnProperty
@@ -456,6 +456,8 @@ with(this){
 
 ### 编译原理（过程）
 
+Vue的编译过程就是将`template`转化为`render`函数的过程。
+
 + parse
 
   目标是把 `template` 模板字符串转换成 AST 树。执行 parseHTML 方法，利用正则表达式**顺序**解析模板，当解析到开始标签、闭合标签、文本的时候都会分别执行对应的回调函数，这个过程中会分析标签中的属性、事件等等，最终构造 AST 树。其中利用 stack 栈保证元素的正确闭合。最终生成的 AST 元素节点有3种类型，1 - 普通元素；2 - 表达式；3 - 纯文本
@@ -470,15 +472,16 @@ with(this){
 
 总结
 
-首先回将 template 模板字符串转换为 AST 树，然后对 AST 树进行优化，标记静态节点，在后续节点复用的比对时跳过这些静态节点。最后会将这颗 AST 树编译成一段代码字符串，经过 new Function 的包裹返回，最终由 createElement 函数调用，用于生成 Vnode。
+Vue的编译过程就是将`template`转化为`render`函数的过程。首先回将 template 模板字符串转换为 AST 树，然后对 AST 树进行优化，标记静态节点，在后续节点复用的比对时跳过这些静态节点。最后会将这颗 AST 树编译成一段代码字符串，经过 new Function 的包裹返回，最终由 createElement 函数调用，用于生成 Vnode。
 
 ### Diff 算法 
 
-原则（组件）
+原则
 
 + 只比较同一层级，不跨级比较
-+ tag 不同，直接删除重建，不会再进行深度比较
-+ tag 和 key 相同，两者都相同，则认为是相同节点，不再进行深度比较
++ 判断一方有子节点一方没有子节点的情况，新children 无则将旧的删除，旧的无，则新增
++ 都有子节点的情况下进入核心diff算法比较
++ 递归比较子节点
 
 当数据更新时，会触发 watcher 的回调函数，对于渲染 watcher，回调函数再次调用了 patch 方法，传入了旧 vnode 与当前新的 vnode。
 
@@ -619,8 +622,8 @@ key 作为唯一的标记，用于区分不同的 vnode，在新旧节点的对�
 
 + vnode
 
-  + 增强了静态分析，为节点标记为静态节点与动态节点，在 patch 时，只会比较动态节点。（Vue 2 中 optimize 过程会标记静态节点掠过分析）
-  + 节点类型细化区分。生成的 Vnode 会标记该节点的 patchFlag，标识哪些部分可能会有修改。 在 patch 节点有很多地方会根据这个标记作特定的操作。而在 Vue 2 中，普通节点的 patch 会通过内置的 update 钩子进行圈梁新旧比对然后更新；如果是 component，则会在 prepatch 节点进行判断，有变化触发 forceUpdate。显然在这个过程中会作较多重复无用的对比。
+  + 增强了静态分析，为节点标记为静态节点与动态节点，在 patch 时，只会比较动态节点，静态节点不能进入patch。（Vue 2 中 optimize 过程会标记静态节点略过分析）。
+  + 节点类型细化区分。生成的 Vnode 会标记该节点的 **patchFlag**，标识哪些部分可能会有修改。 在 patch 节点有很多地方会根据这个标记作特定的操作。而在 Vue 2 中，普通节点的 patch 会通过内置的 update 钩子进行圈梁新旧比对然后更新；如果是 component，则会在 prepatch 节点进行判断，有变化触发 forceUpdate。显然在这个过程中会作较多重复无用的对比。
 
 + 事件优化（待补充）
 
