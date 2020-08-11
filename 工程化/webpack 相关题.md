@@ -10,6 +10,8 @@
 
 ### bundle、chunck、module 的区别
 
+### 如何实现懒加载
+
 ### 热更新原理
 
 ### 构建过程
@@ -18,8 +20,16 @@
 
 ### dynamic import 的实现（jsonp）
 
-### 打包优化
+### 优化
+
++ dll
++ tree-shaking
++ scope-hosting
++ code-splitting
++ happyPack 等
 
 ### webpack 的缺点 （对比 bundleless）
 
 [Webpack 打包太慢，试试 Bundleless](https://segmentfault.com/a/1190000023161176)
+
+babel-runtime 和 babel-polyfill 的区别

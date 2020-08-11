@@ -88,6 +88,8 @@
 
 + [大前端面试题库](http://bigerfe.com/)
 
++ [中高级前端大厂面试秘籍，为你保驾护航金三银四，直通大厂](https://juejin.im/post/6844903776512393224)
+
 + [174道题](https://segmentfault.com/a/1190000022164672)
 
 + [2万字 | 前端基础拾遗90问](https://juejin.im/post/5e8b261ae51d4546c0382ab4)
