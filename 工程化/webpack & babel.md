@@ -13,7 +13,7 @@
 ### bundle、chunck、module 的区别
 
 ### 前端模块化
-
+### 如何实现懒加载
 ### 热更新原理
 
 ### 构建过程
@@ -22,7 +22,13 @@
 
 ### dynamic import 的实现（jsonp）
 
-### 打包优化
+### 优化
+
++ dll
++ tree-shaking
++ scope-hosting
++ code-splitting
++ happyPack 等
 
 + tree-shaking
 
@@ -40,3 +46,5 @@
 
 ### babel-polyfill
 
+
+babel-runtime 和 babel-polyfill 的区别
