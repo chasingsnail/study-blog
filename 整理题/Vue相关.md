@@ -206,7 +206,7 @@ proxy 可以之间对数组进行操作（push、splice 等）
 
 proxy 拦截方式多，例如 aplly、has 等
 
-proxy 劣势在于其兼容性问题，且无法完美得 polyfill 方案
+proxy 劣势在于其兼容性问题，且无法完美得 polyfill 方案。
 
 #### 响应式过程
 
