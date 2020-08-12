@@ -100,6 +100,8 @@
 
 + [面试分享：两年工作经验成功面试阿里P6总结](https://juejin.im/post/5d690c726fb9a06b155dd40d)
 
++ [前端10个灵魂拷问 吃透这些你就能摆脱初级前端工程师！](https://juejin.im/post/6857800782276902919)
+
   
 
 ## HTML
@@ -255,6 +257,7 @@
 
 +  [TCP协议灵魂之问，巩固你的网路底层基础](https://juejin.im/post/5e527c58e51d4526c654bf41 )
 +  [如何优雅的谈论HTTP／1.0／1.1／2.0](https://www.jianshu.com/p/52d86558ca57)
++  [「查缺补漏」巩固你的HTTP知识体系](https://juejin.im/post/6857287743966281736)
 
 ### 综合
 
