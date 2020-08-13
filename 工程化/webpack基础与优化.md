@@ -515,7 +515,7 @@ exclude优先级高于include。
 
 缓存loader编译结果至磁盘中，其自身缓存或读取文件会有一些开销，因此用于开销较大的loader之前。
 
-## （实际应用情况？）happypack
+## happypack
 
 webpack运行时为单线程模型，一次只能处理一个文件，无法并行处理。happypack可以嫁给你任务拆解为多个子进程，最后再将结果汇总到主进程。
 
@@ -558,7 +558,7 @@ module.exports = {
 
 ## thread-loader
 
-除了happypack外，webpack4官方推荐，提供了thread-loader的解决方案。用法是将thread-loader放置在其他loader之前，放置在其后的loader就会单独在一个worder池中运行。
+除了happypack外，webpack4官方推荐，提供了thread-loader的解决方案。用法是将thread-loader放置在其他loader之前，放置在其后的loader就会单独在一个worker池中运行。
 
 worker池中有相应的限制：
 
@@ -668,7 +668,6 @@ module.exports = {
 ## 优化
 + [Vue打包优化之路](https://zhuanlan.zhihu.com/p/48461259)
 + [玩转 webpack，使你的打包速度提升 90%](https://juejin.im/post/5e53dbbc518825494905c45f)
-+ [如何使用Tree-shaking减少代码构建体积](https://juejin.im/post/5e54d5e7e51d4526c932b60f)
 ## 原理
 + [Webpack HMR 原理解析](https://zhuanlan.zhihu.com/p/30669007)
 + [如何使用 splitChunks 精细控制代码分割](https://juejin.im/post/5e7c83b4e51d455c6c269608)

@@ -4,7 +4,7 @@
 
 代码层面
 
-+ 通过对代码的压缩，拆分，减小代码体积，加载更快
++ 通过对代码的压缩，公共模块、第三方模块的抽离拆分，减小代码体积，加载更快，异步加载等方法提升加载效率
 + 能够编译高级语法 TS、ES6、Scss
 + 自动化兼容性与错误检查 （polyfill、postcss）
 
@@ -40,6 +40,8 @@ this 指向 loaderContext，该对象上有callback、data、loaderIndex、addCo
 通过常用的 loader-utils 的 getOptions 获取配置的 options。
 
 可通过 webpack 配置 resolveLoader 字段来自定义 loader 引用来源（默认从 node_modules 中获取）
+
+参考：https://juejin.im/post/6844904054393405453
 
 ### plugin
 
@@ -84,7 +86,7 @@ chunk 是由多个 module 合并成的，在 webpack 打包过程中，会根据
 ### 前端模块化 & 模块包装
 ### （待补充实现原理）如何实现懒加载
 
-import() 方法返回一个 promise
+import() 方法返回一个 promise，可以使用 /* webpackChunkName: "xxxx" */ 的形式来对打包后的文件命名。
 
 ### 热更新原理
 
@@ -100,18 +102,92 @@ webpack 根据入口文件和模块之间的依赖关系，会将代码包装成
 
 最后根据 output 配置将文件内容写入到执行的文件夹中。
 
-### 按需加载的实现
-
 ### dynamic import 的实现（jsonp）
 
 ### 优化
+
+#### splitChunks 代码分割
+
+该配置目的在于抽离出多次引用的公共代码，抽离出来单独打包，后续的引用直接读取缓存而不需要重复下载。
+
+```js
+// webpack 默认配置
+module.exports = {
+  //...
+  optimization: {
+    splitChunks: {
+      //在cacheGroups外层的属性设定适用于所有缓存组，不过每个缓存组内部可以重设这些属性
+      chunks: "async", //将什么类型的代码块用于分割，三选一： "initial"：入口代码块 | "all"：全部 | "async"：按需加载的代码块
+      minSize: 30000, //大小超过30kb的模块才会被提取
+      maxSize: 0, //只是提示，可以被违反，会尽量将chunk分的比maxSize小，当设为0代表能分则分，分不了不会强制
+      minChunks: 1, //某个模块至少被多少代码块引用，才会被提取成新的chunk
+      maxAsyncRequests: 5, //分割后，按需加载的代码块最多允许的并行请求数，在webpack5里默认值变为6
+      maxInitialRequests: 3, //分割后，入口代码块最多允许的并行请求数，在webpack5里默认值变为4
+      automaticNameDelimiter: "~", //代码块命名分割符
+      name: true, //每个缓存组打包得到的代码块的名称，为 true 时，会就key自动颜泽一个名称；为false时适用于生产环境，避免不必要的命名（此时打包结果通常为0.js、1.js）;如果为string，则会将缓存组打包成一个chunk，名称为该string
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/, //匹配node_modules中的模块
+          priority: -10, //优先级，当模块同时命中多个缓存组的规则时，分配到优先级高的缓存组
+        },
+        default: {
+          minChunks: 2, //覆盖外层的全局属性
+          priority: -20,
+          reuseExistingChunk: true, //是否复用已经从原代码块中分割出来的模块
+        },
+      },
+    },
+  },
+};
+```
+
+详细应用： [在淘宝优化了一个大型项目，分享一些干货](https://juejin.im/post/6844904183917871117)
+
+#### happyPack
+
+原理是将这任务分解到多个子进程中去并行处理，等子进程处理完成后把结果发送到主进程中，缩减构建事件。
+
+#### thread-loader
+
+除了happypack外，webpack4官方推荐，提供了thread-loader的解决方案。用法是将thread-loader放置在其他loader之前，放置在其后的loader就会单独在一个worker池中运行。
+
+#### JS多进程压缩
+
+webpack默认使用TerserWebpackPlugin，默认开启多进程与缓存，可以在`.cache`中看到相关的文件。
+
+#### 模块缓存
+
+作为 dll 的替代方案，HardSourceWebpackPlugin为模块提供中间件缓存，配置相关插件后，第二次开始的构建时间会有很大程度上的缩减。
+
+#### tree-shaking
+
+依赖代码静态分析能力，用来清除代码中没有被使用到的部分。webpack 4 生产模式下自动开启。注意点是，能够去除的代码必须是 ES6 模块的，不能是 CommonJS 规范。而 Babel preset 会默认将任何模块类型都转译成 CommonJS 类型，因而导致 tree-shaking 失效，解决办法是设置 "module": false
+
+#### 打包构建优化总结
+
++ 构建层
+  + 多进程
+    + happyPack
+    + thread-loader
+    + terser，多进程并行压缩
+  + 缓存
+    + HardSourceWebpackPlugin，有效提升第二次构建速度
+    + dll
+    + 大部分 `loader` 都提供了`cache` 配置项。比如在 `babel-loader` 中，可以通过设置`cacheDirectory` 来开启缓存，`babel-loader?cacheDirectory=true`。不支持 cache 配置的 loader 可通过 cache-loader 将编译写过写入缓存。
+  + 压缩
+
++ 代码层
+  + 作用域提升 scope hositing 将分散的模块划分到同一个作用域中。
+  + 抽离第三方库、公共模块
+  + 删除无用代码 tree-shaking
+
+优化本身是一件拆东补西的事，比如提取出一个公共 chunk，打包产出的文件就会多一个，也必然会增加一个网络请求。当项目很庞大，每个公共模块单独提取成一个 chunk 会导致打包速度出奇的慢，影响开发体验，所以通常会取折衷方案，将重复的较大模块单独提取，而将一些重复的小模块打包到一个 chunk，以减少包数量，同时不能让这个包太大，否则会影响页面加载时间。
 
 + dll
 + tree-shaking
 + scope-hosting
 + code-splitting
 + happyPack 等
-
 + tree-shaking
 
 ### webpack 的缺点 （对比 bundleless）
