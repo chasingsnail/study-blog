@@ -32,7 +32,7 @@ if (options.hotOnly) {
 + webpack-dev-server/client
 + webpack/hot/dev-server
 
-并将这两个地址通过修改webpack入口文件注入，一同打包进bundle文件。
+并将这两个地址通过**修改webpack入口文件注入**，一同打包进bundle文件。
 
 webpack-dev-server/client 用于浏览器（客户端）接收 websocket 消息。因此需要将其通信代码塞进打包入口文件中，在客户端执行。
 
