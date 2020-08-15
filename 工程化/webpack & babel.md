@@ -84,6 +84,11 @@ chunk 是由多个 module 合并成的，在 webpack 打包过程中，会根据
 处理完成后会输出 bundle 文件。一般来说一个 chunk 对应一个 bundle，但比如我们配置了 css 抽离插件，则会从 chunk 中单独抽离出一个 css bundle 文件。
 
 ### 前端模块化 & 模块包装
+
+ESM 为静态引入，在没有运行时静态分析，因此可以被 tree-shaking，无法在运行时判断引用。
+
+CommonJS 为动态引入，在运行时加载，无法被 tree-shaking。
+
 ### （待补充实现原理）如何实现懒加载
 
 import() 方法返回一个 promise，可以使用 /* webpackChunkName: "xxxx" */ 的形式来对打包后的文件命名。
@@ -153,7 +158,7 @@ module.exports = {
 
 #### JS多进程压缩
 
-webpack默认使用TerserWebpackPlugin，默认开启多进程与缓存，可以在`.cache`中看到相关的文件。
+webpack默认使用TerserWebpackPlugin，**默认开启**多进程与缓存，可以在`.cache`中看到相关的文件。
 
 #### 模块缓存
 
@@ -161,7 +166,7 @@ webpack默认使用TerserWebpackPlugin，默认开启多进程与缓存，可以
 
 #### tree-shaking
 
-依赖代码静态分析能力，用来清除代码中没有被使用到的部分。webpack 4 生产模式下自动开启。注意点是，能够去除的代码必须是 ES6 模块的，不能是 CommonJS 规范。而 Babel preset 会默认将任何模块类型都转译成 CommonJS 类型，因而导致 tree-shaking 失效，解决办法是设置 "module": false
+依赖代码静态分析能力，用来清除代码中没有被使用到的部分。webpack 4 生产模式下**自动开启**。注意点是，能够去除的代码必须是 ES6 模块的，不能是 CommonJS 规范。而 Babel preset 会默认将任何模块类型都转译成 CommonJS 类型，因而导致 tree-shaking 失效，解决办法是设置 "module": false。ß
 
 #### 打包构建优化总结
 
