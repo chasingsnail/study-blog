@@ -260,6 +260,7 @@
 +  [TCP协议灵魂之问，巩固你的网路底层基础](https://juejin.im/post/5e527c58e51d4526c654bf41 )
 +  [如何优雅的谈论HTTP／1.0／1.1／2.0](https://www.jianshu.com/p/52d86558ca57)
 +  [「查缺补漏」巩固你的HTTP知识体系](https://juejin.im/post/6857287743966281736)
++  [WebSocket 教程](https://www.ruanyifeng.com/blog/2017/05/websocket.html)
 
 ### 综合
 

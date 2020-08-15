@@ -91,9 +91,32 @@ CommonJS 为动态引入，在运行时加载，无法被 tree-shaking。
 
 ### （待补充实现原理）如何实现懒加载
 
+### 如何实现懒加载
+
 import() 方法返回一个 promise，可以使用 /* webpackChunkName: "xxxx" */ 的形式来对打包后的文件命名。
 
+### （待补充）dynamic import 的实现（jsonp）
+
 ### 热更新原理
+
+```js
+if(module && module.hot) {
+    module.hot.accept()
+}
+```
+
+基于 websocket 来实现的。在运行 webpack-dev-server 命令时，会启动 webpack，监听文件的编译状态。另外在开启本地服务之前会修改webpack配置中的入口 entry 的配置，将 websocket、热更新相关的代码一起打包，最后打包运行在客户端，可以让浏览器端接收到websocket消息。本地文件改动重新编译后，浏览器端会收到hash、ok的消息，会将hash保存，当收到ok的消息时进行重载。
+
+如果配置了热更新模块，先请求返回一个 json，包含了要更新模块的 hash，再通过 jsonp 的方式来获取最新的代码，执行模块的更新替换，删除就模块等。 如果过程中出现错误则会会退为刷新浏览器来获取最新代码。
+
+详细过程参考：
+
++ Webpack 热更新模块.md
++ [Webpack HMR 原理解析](https://zhuanlan.zhihu.com/p/30669007)
+
+#### vue 热更新原理
+
+在 vue-loader 处理中注入了热更新相关的代码。更新粒度是组件级的，通过维护了一个map对象，来存储对应组件的实例。通过往 beforeCreate 和 beforeDestory 注入，在触发时收集与销毁 Map 上对应的实例。在热更新触发后，对组件进行重新渲染（$forceUpdate）。
 
 ### 构建过程
 
@@ -106,8 +129,6 @@ import() 方法返回一个 promise，可以使用 /* webpackChunkName: "xxxx" *
 webpack 根据入口文件和模块之间的依赖关系，会将代码包装成一个个 chunk，根据依赖和配置确定输出内容，这时仍可以通过 plugin 进行文件的修改。
 
 最后根据 output 配置将文件内容写入到执行的文件夹中。
-
-### dynamic import 的实现（jsonp）
 
 ### 优化
 
@@ -182,7 +203,7 @@ webpack默认使用TerserWebpackPlugin，**默认开启**多进程与缓存，�
   + 压缩
 
 + 代码层
-  + 作用域提升 scope hositing 将分散的模块划分到同一个作用域中。
+  + 作用域提升 scope hosting 将分散的模块划分到同一个作用域中，有效减少打包后的代码体积和运行时的内存损耗
   + 抽离第三方库、公共模块
   + 删除无用代码 tree-shaking
 
