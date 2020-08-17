@@ -222,13 +222,93 @@ webpack默认使用TerserWebpackPlugin，**默认开启**多进程与缓存，�
 
 ## Babel
 
+babel 本身只关注语法是否符合 ES5 的规范，会解析例如箭头函数、解构赋值等新语法；而对于新的 API 不会进行解析，例如 includes，Promise 等 API。因此还需要 polyfill
+
 ### 基本配置
 
 ### 手写 plugin
 
 ### 运行机制
 
+### babel-preset
+
+preset 可以作为 Babel 插件的组合
+
 ### babel-polyfill
 
+babel-polyfill 本质上是 core-js 与 regenerator 的集合
 
-babel-runtime 和 babel-polyfill 的区别
++ core-js：转义各种高级新 API，例如 Promise、includes 等
++ regenerator：转义 generator 语法
+
+在 babel 7.4 之后，弃用 babel-polyfill。
+
+不推荐直接引入 polyfill 的方式，而是改为按需引入配置即可：
+
+`env`preset 这个 preset 包括支持现代 JavaScript(ES6+) 的所有插件。
+
+.babelrc 配置方式：
+
+```json
+{
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "useBuiltIns": "usage",
+        "corejs": 3
+      }
+    ]
+  ]
+}
+```
+
+Babel.config.js 配置方式：
+
+```js
+const presets = [
+[
+  "@babel/env",
+      {
+        targets: {
+        edge: "17",
+        chrome: "64",
+        firefox: "67",
+        safari: '11.1'
+      },
+      useBuiltIns: "usage",
+      corejs: 3
+    }
+  ]
+]
+
+module.exports = { presets }
+```
+
+babel-polyfill 的问题在于会污染全局变量，其实现方式是通过重写全局 API 的形式，例如 window.Promise = xxx 的方式。
+
+### Babel-runtime
+
+能够提供一个沙盒环境，可以将 core-js 的内置 API 换成一个别名，避免全局污染。额外安装 @babel/runtime-corejs3，去掉 presets 中对于按需加载的配置。
+
+```js
+{
+  "presets": [
+    [
+      "@babel/preset-env"
+    ]
+  ],
+  "plugins": [
+    [
+      "@babel/plugin-transform-runtime",
+      {
+        "corejs": 3
+      }
+    ]
+  ]
+}
+```
+
+
+
+#### babel-runtime 和 babel-polyfill 的区别
