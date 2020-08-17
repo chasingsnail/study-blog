@@ -159,11 +159,36 @@ require(['module1', 'module2'], function(m1, m2){
 
 使用 AMD 需要引入 require.js 。
 
+# UMD
+
+作为一种同构方案，UMD 同时兼容 CommonJS 与 AMD 两种规范。
+
+```js
+;(function (self, factory) {
+	if (typeof module === 'object' && typeof module.exports === 'object') {
+		// CommonJS 规范环境
+		module.exports = factory()
+	} else if (typeof define === 'function' && define.amd) {
+		// AMD 规范环境
+		define(factory)
+	} else {
+		// 什么环境都不是，直接挂在全局对象上
+		self.umdModule = factory()
+	}
+})(this, function () {
+	return function () {
+		return Math.random()
+	}
+})
+```
+
+常用在第三方依赖库打包文件中，例如 Vue.js
+
 # ES Module
 
-ES6 模块的设计思想是尽量的静态化，使得编译时就能确定模块的依赖关系，以及输入和输出的变量。CommonJS 和 AMD 模块，都只能在运行时确定这些东西。比如，CommonJS 模块就是对象，输入时必须查找对象属性。
+ES6 模块的设计思想是尽量的**静态化**，使得编译时就能确定模块的依赖关系，以及输入和输出的变量。CommonJS 和 AMD 模块，都只能在运行时确定这些东西。比如，CommonJS 模块就是对象，输入时必须查找对象属性。
 
-该规范是由 JS 解释器实现的，而 CommonJS 和 AMD 主要依赖于宿主环境中运行时实现的。
+该规范是由 **JS 解释器**实现的，而 CommonJS 和 AMD 主要依赖于宿主环境中运行时实现的。
 
 ## 基本用法
 
@@ -208,9 +233,13 @@ incCounter();
 console.log(counter); // 4
 ```
 
+由于 ESM 静态分析的特点，因此不能够给导入路径设置一个变量，或是利用条件判断导入模块，在静态分析阶段无法做出这样的识别。特殊的情况是动态引入 import() 方法中的参数可以是一个变量，其是异步加载。
+
+而 CommonJS 是运行时加载，因此没有限制。
+
 # 后模块化
 
-随着不同环境中 js 解释器的升级最终会支持es module，但是由于用户可能是用旧版浏览器的原因，需要使用工具将代码进行向低版本兼容。例如babel。
+随着不同环境中 js 解释器的升级最终会支持 es module，但是由于用户可能是用旧版浏览器的原因，需要使用工具将代码进行向低版本兼容。例如 babel。
 
 babel 会将 ES Module 编译为 CommonJS 语法。因此还需要借助打包工具，如 webpack / rollup
 
