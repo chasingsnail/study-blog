@@ -4,15 +4,15 @@
 
 代码层面
 
-+ 通过对代码的压缩，公共模块、第三方模块的抽离拆分，减小代码体积，加载更快，异步加载等方法提升加载效率
++ 通过对代码的压缩，公共模块、第三方模块的抽离拆分，异步加载等方法减小代码体积，提升加载效率
 + 能够编译高级语法 TS、ES6、Scss
-+ 自动化兼容性与错误检查 （polyfill、postcss）
++ 自动化兼容性与错误检查 （polyfill、eslint）
 
 研发流程角度
 
 + 统一开发环境
-+ 统一了构建流程和产出
-+ 能够自动继承公司构建，提高了工程化效率
++ 统一构建流程和产出
++ 能够自动集成公司构建，提高了工程化效率
 
 ### 基本使用
 
@@ -69,9 +69,9 @@ Compilation 相当于一个编译实例，每次文件改动时，webpack会创�
 
 ### loader 与 plugin 的区别
 
-loader 是模块转化器，的作用在于处理任意类型的文件，并且将它们转换成一个让 `webpack` 可以处理的有效模块。，输入输出都是字符串的形式。
+loader 是模块转化器，作用在于处理任意类型的文件，并且将它们转换成一个让 `webpack` 可以处理的有效模块。，输入输出都是字符串的形式。
 
-plugin 通过监听会贯穿在整个生产过程的每个步骤，进行扩展
+plugin 通过监听会贯穿在整个生产过程的每个步骤，对编译文件进行扩展
 
 ### 手写 loader / plugin
 
@@ -79,7 +79,7 @@ plugin 通过监听会贯穿在整个生产过程的每个步骤，进行扩展
 
 我们书写的文件是一个个的 module，可以导出或被别的文件引用。
 
-chunk 是由多个 module 合并成的，在 webpack 打包过程中，会根据引用依赖关系生成 chunk 文件。（entry、import() splitChunk 等）
+在 webpack 打包过程中，chunk 是由多个 module 合并成的，会根据引用依赖关系生成 chunk 文件。（entry、import() splitChunk 等）
 
 处理完成后会输出 bundle 文件。一般来说一个 chunk 对应一个 bundle，但比如我们配置了 css 抽离插件，则会从 chunk 中单独抽离出一个 css bundle 文件。
 
@@ -97,7 +97,7 @@ import() 方法返回一个 promise，可以使用 /* webpackChunkName: "xxxx" *
 
 通过 JSONP + promise 包裹的方式来实现动态加载。
 
-动态加载通过 JSONP 方式加载，生成 script 标签挂在到 head 中；拿到返回的结果后执行异步加载回调。这一过程通过 promise 包裹的形式串行。加载完成异步模块后，执行这个模块中的代码，将异步模块注入全局 modules 中，最后把promise resolve 掉，在 then 方法中通过 require 方法加载注入到全局 modules 的异步模块，拿到模块导出的对象后执行加载完成后的回调。
+动态加载通过 JSONP 方式，生成 script 标签挂在到 head 中；拿到返回的结果后执行异步加载回调。这一过程通过 promise 包裹的形式串行。加载完成异步模块后，执行这个模块文件的代码，将异步模块注入全局 modules 中，最后把promise resolve 掉，在 then 方法中通过 require 方法加载注入到全局 modules 的异步模块，拿到模块导出的对象后执行加载完成后的回调。
 
 ### 热更新原理
 
@@ -152,7 +152,7 @@ module.exports = {
       maxAsyncRequests: 5, //分割后，按需加载的代码块最多允许的并行请求数，在webpack5里默认值变为6
       maxInitialRequests: 3, //分割后，入口代码块最多允许的并行请求数，在webpack5里默认值变为4
       automaticNameDelimiter: "~", //代码块命名分割符
-      name: true, //每个缓存组打包得到的代码块的名称，为 true 时，会就key自动颜泽一个名称；为false时适用于生产环境，避免不必要的命名（此时打包结果通常为0.js、1.js）;如果为string，则会将缓存组打包成一个chunk，名称为该string
+      name: true, //每个缓存组打包得到的代码块的名称，为 true 时，会就key自动选择一个名称；为false时适用于生产环境，避免不必要的命名（此时打包结果通常为0.js、1.js）;如果为string，则会将缓存组打包成一个chunk，名称为该string
       cacheGroups: {
         vendors: {
           test: /[\\/]node_modules[\\/]/, //匹配node_modules中的模块
@@ -189,7 +189,7 @@ webpack默认使用TerserWebpackPlugin，**默认开启**多进程与缓存，�
 
 #### tree-shaking
 
-依赖代码静态分析能力，用来清除代码中没有被使用到的部分。webpack 4 生产模式下**自动开启**。注意点是，能够去除的代码必须是 ES6 模块的，不能是 CommonJS 规范。而 Babel preset 会默认将任何模块类型都转译成 CommonJS 类型，因而导致 tree-shaking 失效，解决办法是设置 "module": false。ß
+依赖代码静态分析能力，用来清除代码中没有被使用到的部分。webpack 4 生产模式下**自动开启**。注意点是，能够去除的代码必须是 ES6 模块的，不能是 CommonJS 规范。而 Babel preset 会默认将任何模块类型都转译成 CommonJS 类型，因而导致 tree-shaking 失效，解决办法是设置 "module": false。
 
 #### 打包构建优化总结
 
@@ -224,7 +224,7 @@ webpack默认使用TerserWebpackPlugin，**默认开启**多进程与缓存，�
 
 ## Babel
 
-babel 本身只关注语法是否符合 ES5 的规范，会解析例如箭头函数、解构赋值等新语法；而对于新的 API 不会进行解析，例如 includes，Promise 等 API。因此还需要 polyfill
+Babel 用于解决 JS 不同版本的语法差异。Babel 本身只关注语法是否符合 ES5 的规范，会解析例如箭头函数、解构赋值等新语法；而对于新的 API 不会进行解析，例如 includes，Promise 等 API。因此还需要 polyfill
 
 ### 基本配置
 
@@ -234,7 +234,7 @@ babel 本身只关注语法是否符合 ES5 的规范，会解析例如箭头函
 
 ### babel-preset
 
-preset 可以作为 Babel 插件的组合
+preset 可以作为 Babel 插件的组合，该模块预设了一组常用的插件集合。
 
 ### babel-polyfill
 
