@@ -89,13 +89,15 @@ ESM 为静态引入，在没有运行时静态分析，因此可以被 tree-shak
 
 CommonJS 为动态引入，在运行时加载，无法被 tree-shaking。
 
-### （待补充实现原理）如何实现懒加载
-
 ### 如何实现懒加载
 
 import() 方法返回一个 promise，可以使用 /* webpackChunkName: "xxxx" */ 的形式来对打包后的文件命名。
 
-### （待补充）dynamic import 的实现（jsonp）
+### dynamic import 的实现（jsonp）
+
+通过 JSONP + promise 包裹的方式来实现动态加载。
+
+动态加载通过 JSONP 方式加载，生成 script 标签挂在到 head 中；拿到返回的结果后执行异步加载回调。这一过程通过 promise 包裹的形式串行。加载完成异步模块后，执行这个模块中的代码，将异步模块注入全局 modules 中，最后把promise resolve 掉，在 then 方法中通过 require 方法加载注入到全局 modules 的异步模块，拿到模块导出的对象后执行加载完成后的回调。
 
 ### 热更新原理
 
@@ -313,8 +315,12 @@ babel-polyfill 的问题在于会污染全局变量，其实现方式是通过�
 
 #### babel-runtime 和 babel-polyfill 的区别
 
+babel-runtime 不会污染全局变量，推荐在开发库的时候使用，同时它也能够支持按需引入，但是相关的 core-js 包会大一些。
 
+babel-polyfill 是通过覆盖原型或全局的方法来做兼容，在独立的 web 开发项目中可以使用。
 
 # 拓展
 
 + [Babel 插件有啥用？](https://zhuanlan.zhihu.com/p/61780633)
++ [Webpack 是怎样运行的?（一）](https://zhuanlan.zhihu.com/p/52826586)
++ [Webpack 是怎样运行的?（二）](https://zhuanlan.zhihu.com/p/53044886)
