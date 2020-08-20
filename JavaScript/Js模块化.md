@@ -249,3 +249,25 @@ babel 会将 ES Module 编译为 CommonJS 语法。因此还需要借助打包�
 使用 ES Module 必须配合 webpack 和 babel（语法转换）
 
 AMD 与 CommonJS 至少使用 webpack 即可
+
+
+
+nodejs 是一个运行时的规范，需要用到运行时的模块进行解析。
+
+nodejs 中有一个模块是 vm，连接上层js代码和底层的v8引擎，能将字符串解析成可执行的代码，对比 js new Function、eval。
+
+```js
+const vm = require('vm')
+
+const script = new vm.Script('console.log("hello world")')
+
+script.runInThisContext() // hello world
+```
+
+调用了底层解析能力，在当前运行上下文环境运行了这段代码。
+
+nodejs 也是用了这样的形式，通过读取模块，把js模块转换成了一段一段符合 commonjs 规范的代码。
+
+例子：尝试导出 module.exports = 'hello' 模块
+
+首先通过 fs 读取模块的内容

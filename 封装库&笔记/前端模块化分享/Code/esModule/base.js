@@ -10,10 +10,11 @@ if (isDev) {
 }
 // error
 const path = './moduleA.js'
-import moduleA from path;
+import moduleA from path
 // correct
 const path = './moduleA.js'
-import(path);
+import(path)
+
 
 
 
