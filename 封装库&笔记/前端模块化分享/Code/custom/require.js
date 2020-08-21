@@ -14,9 +14,15 @@ function customRequire(modulePath) {
 	const func = script.runInThisContext()
 	const m = {
 		exports: {},
-  }
+	}
+	console.log('m is', m);
 	func(customRequire, m, m.exports)
 	return m.exports
 }
 
 global.customRequire = customRequire
+
+// module.exports = xx
+// exports.xx = xx
+
+// exports = xx

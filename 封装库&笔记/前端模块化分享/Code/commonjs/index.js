@@ -1,6 +1,6 @@
 // require('./customRequire.js')
 
 // customRequire("./moduleA.js");
-// var m = customRequire("./moduleB.js");
+var m = require("./moduleB.js");
 // console.log(m);
-console.log(module);
+console.log(m);
