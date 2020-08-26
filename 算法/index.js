@@ -60,16 +60,21 @@ const bubbleSort = (arr, judge) => {
 const judge = (a, b) => a > b
 
 // 直接插入排序
-const insertSort = (arr) => {
-	for (let i = 0; i < arr.length; i++) {
-		for (let j = i; j >= 0; j--) {
-			if (arr[j] < arr[i]) {
-				arr.splice(j + 1, 0, arr.splice(i, 1)[0])
+const insertSort = arr => {
+	for (let i = 1; i < arr.length; i++) {
+		let temp = arr[i];
+		// 从后往前
+		let j
+		for (j = i - 1; j >= 0; j--) {
+			if (arr[j] > temp) {
+				// 当数组项大于比较项时，将第 j 项往后的项往后移位
+				arr[j + 1] = arr[j]
+			} else {
+				// 找到第一项小于比较项时，跳出循环
 				break
-			} else if (j === 0) {
-				arr.splice(j, 0, arr.splice(i, 1)[0])
 			}
 		}
+		arr[j + 1] = temp
 	}
 	return arr
 }
@@ -168,13 +173,41 @@ const mergeSort = (arr) => {
   return merge(mergeSort(left), mergeSort(right))
 }
 
+// 希尔排序
+const shellSort = arr => {
+	let h = arr.length;
+	while (true) {
+		h = Math.floor(h / 2)
+		for (let x = 0; x < h; x++) {
+			// 间隔 h 分组，组内直接插入排序
+			for (let i = x + h; i < arr.length; i = i + h) {
+				let temp = arr[i]
+				let j
+				for (j = i - h; j >= 0; j = j - h) {
+					if (arr[j] > temp) {
+						arr[j + h] = arr[j]
+					} else {
+						break
+					}
+				}
+				arr[j + h] = temp;	
+			}
+		}
+		if (h === 1) {
+			break
+		}
+	}
+	return arr
+}
+
 // 堆排序
 
 // const res = bubbleSort(mockData, judge)
-// const res = insertSort(mockData)
+const res = insertSort(mockData)
 // const res = selectSort(mockData)
 // const res = quickSort(mockData)
 // const res = updateQuickSort(mockData, 0, mockData.length - 1)
-const res = mergeSort(mockData)
+// const res = mergeSort(mockData)
+// const res = shellSort(mockData)
 
 console.log(res)
