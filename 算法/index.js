@@ -203,11 +203,20 @@ const shellSort = arr => {
 // 堆排序
 
 // const res = bubbleSort(mockData, judge)
-const res = insertSort(mockData)
+// const res = insertSort(mockData)
 // const res = selectSort(mockData)
 // const res = quickSort(mockData)
 // const res = updateQuickSort(mockData, 0, mockData.length - 1)
 // const res = mergeSort(mockData)
 // const res = shellSort(mockData)
 
-console.log(res)
+// console.log(res)
+
+
+var a = [0, 1, 0, 2, 4]
+a.forEach((i, index) => {
+  if (i === 0) {
+    a.push(a.splice(index, 1)[0])
+  }
+})
+console.log(a)
