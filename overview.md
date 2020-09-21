@@ -258,6 +258,8 @@
 
 ## 网络
 
+[大公司里怎样开发和部署前端代码](https://www.zhihu.com/question/20790576/answer/32602154)
+
 ### TCP相关
 
 +  [TCP协议灵魂之问，巩固你的网路底层基础](https://juejin.im/post/5e527c58e51d4526c654bf41 )
