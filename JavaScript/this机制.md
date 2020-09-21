@@ -382,7 +382,7 @@ Function.prototype.myApply = function (context) {
 ```
 fun.bind(thisArg[, arg1[, arg2[, ...]]]);
 ```
-其中，thisArg为调用函数时作为this参数传递给目标函数的值。如果使用new运算符构造绑定函数，则会忽略该值。bind方法返回一个原函数的靠背，并拥有指定的this值和初始参数。
+其中，thisArg为调用函数时作为this参数传递给目标函数的值。如果使用new运算符构造绑定函数，则会忽略该值。bind方法返回一个原函数的拷贝，并拥有指定的this值和初始参数。
 
 bind可以使得函数拥有一个预设的初始参数，如_add方法所示。
 
@@ -439,12 +439,6 @@ Function.prototype.bind = function(oThis) {
         };
 
     // 维护原型关系，如果有原型的情况下,使用原型式继承
-  	// function Foo(a) {
-  	//   this.a = a
-		// }
-  	// Foo.prototype.sayName = function () {
-    //   console.log(this.a)
-    // }
     if (this.prototype) {
       // Function.prototype doesn't have a prototype property
       fNOP.prototype = this.prototype; 
