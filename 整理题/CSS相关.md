@@ -206,7 +206,48 @@ Grid 布局是将容器划分成"行"和"列"，产生单元格，然后可以�
 
 ### 定位
 
-## 重绘与重排
+## 重绘与回流（重排）
+
+前置知识：浏览器渲染过程，[参考](../JavaScript/浏览器渲染.md)
+
+#### 回流的触发
+
++ 添加或删除可见的 DOM
++ 元素位置发生变化 （绝对定位除外）
++ 元素尺寸发生变化（margin、padding、border、width、height）
++ 内容发生变化（文字变化，图片被另一个尺寸图片替换）
++ 浏览器窗口大小变化
+
+#### 重绘的触发
+
++ 回流必然会触发重绘
++ 修改样式并且不影响其在文档流中的位置（改变 color、背景颜色等）
+
+浏览器对于频繁的回流与重绘有自己的优化机制，会维护一个队列，达到一定的阈值或时间间隔会清空队列，将多次回流与重绘合变为一行。但是当访问以下属性时会立刻清空队列：
+
+```
+clientWidth`、`clientHeight`、`clientTop`、`clientLeft
+offsetWidth`、`offsetHeight`、`offsetTop`、`offsetLeft
+scrollWidth`、`scrollHeight`、`scrollTop`、`scrollLeft
+width`、`height
+getComputedStyle()
+getBoundingClientRect()
+```
+
+因此想要实现动画或过渡效果时，尽量使用以上属性。例如当想要改变某个元素的尺寸时，可以利用 transform scale 属性来替代对于 width 和 height 的直接修改。
+
+#### 规避重绘与回流
+
++ css
+  + 动画效果应用到绝对定位或固定定位元素上
+  + CSS 硬件加速
+  + 避免设置多层内敛样式
+  + 避免 table 布局
++ JS
+  + 避免频繁操作样式
+  + 避免频繁操作 DOM，可通过先创建 documentFragment，最后一并添加到 DOM 中
+  + 频繁的读取会触发回流与重绘的属性时，先将其缓存起来
+  + 复杂动画元素使用绝对定位，避免引起父级和后续元素的频繁回流
 
 ## 动画相关
 

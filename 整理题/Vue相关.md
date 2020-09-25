@@ -54,17 +54,23 @@
 
 #### 父子组件生命周期执行顺序（结合源码实现）
 
+初始渲染：父beforeCreate->父created->父beforeMount->子beforeCreate->子created->子beforeMount->子mounted->父mounted
+
+子组件更新：父beforeUpdate->子beforeUpdate->子updated->父updated
+
+组件销毁：父beforeDestroy->子beforeDestroy->子destroyed->父destroyed
+
 ### 双向绑定的实现
 
-Vue 是用了发布订阅模式，通过 Object.defineProperty 深度遍历对对象进行数据劫持的，在数据变动时派发更新通知订阅者，触发相应的回调。
+Vue 是用了代理加上发布订阅模式，通过 Object.defineProperty 深度遍历对对象进行数据劫持的，在数据变动时派发更新通知订阅者，触发相应的回调。
 
 首先在初始化时，对数据对象进行深度遍历，给每个属性添加上 setter 和 getter，这样通过访问这个值触发 getter 收集依赖，改变某个值时，触发 setter 进行通知更新。
 
 在渲染页面的过程中，会生成 Vnode，这时会访问 data 中定义的响应式数据，由此触发数据对象相应的 getter，收集到了相关的 watcher。
 
-watcher 是一个桥梁的作用。每个组件实例都对应一个 **watcher** 实例，在挂载的过程中，初始化渲染 watcher，会将自身添加到全局变量中，在之后渲染过程中，访问响应式数据触发 getter，收集 watcher。当数据变动派发更新时，会触发自身的更新方法执行绑定的回调。
+watcher 是一个桥梁的作用。每个组件实例都对应一个 **watcher** 实例，在组件挂载的过程中，初始化渲染 watcher，会将自身添加到全局变量中，在之后渲染过程中，访问响应式数据触发 getter，收集 watcher。当数据变动派发更新时，会触发自身的更新方法执行绑定的回调。
 
-响应式是基于 Object.defineProperty 深度遍历对数据对象进行劫持的。在 组件渲染的过程中（严格来说是生成 VNode时），会触发数据对象属性的 getter，从而收集到相应的 watcher。在对于数据对象属性进行修改的时候，会触发对应的 setter，从而通知收集到的依赖 watcher 进行更新，将它们放置到一个缓存队列中，通过 next-tick 在下一个循环中遍历更新对应的组件渲染。
+简：响应式是基于 Object.defineProperty 深度遍历对数据对象进行劫持的。在 组件渲染的过程中（严格来说是生成 VNode时），会触发数据对象属性的 getter，从而收集到相应的 watcher。在对于数据对象属性进行修改的时候，会触发对应的 setter，从而通知收集到的依赖 watcher 进行更新，将它们放置到一个缓存队列中，通过 next-tick 在下一个循环中遍历更新对应的组件渲染。
 
 ### 对数组的特殊处理
 
@@ -809,3 +815,9 @@ url
 + [Vue3 究竟好在哪里？（和 React Hook 的详细对比）](https://juejin.im/post/6844904132109664264)
 + [为什么说 Vue 的响应式更新精确到组件级别？（原理深度解析）](https://juejin.im/post/6844904113432444942)
 
+## 参考
+
++ [深度解读 Vue 3 源码 | 从编译过程，理解静态节点提升](https://juejin.im/post/6874419253865365511)
++ [深度解读 Vue 3 源码 | 从编译过程，理解静态节点提升](https://juejin.im/post/6874419253865365511)
++ [Vue3好在哪里](https://juejin.im/post/6844904132109664264)
++ [驳《前端常见的Vue面试题目汇总》](https://juejin.im/post/6844904118704668685)
