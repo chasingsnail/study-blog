@@ -62,19 +62,19 @@
 
 ### 双向绑定的实现
 
-Vue 是用了代理加上发布订阅模式，通过 Object.defineProperty 深度遍历对对象进行数据劫持的，在数据变动时派发更新通知订阅者，触发相应的回调。
+Vue 是用了代理加上发布订阅模式，对对象进行数据劫持，在数据变动时派发更新通知订阅者，触发相应的回调。
 
-首先在初始化时，对数据对象进行深度遍历，给每个属性添加上 setter 和 getter，这样通过访问这个值触发 getter 收集依赖，改变某个值时，触发 setter 进行通知更新。
+首先在初始化时，通过 Object.defineProperty 对数据对象进行深度遍历，给每个属性添加上 setter 和 getter，这样通过访问这个值触发 getter 收集依赖，改变某个值时，触发 setter 进行通知更新。
 
-在渲染页面的过程中，会生成 Vnode，这时会访问 data 中定义的响应式数据，由此触发数据对象相应的 getter，收集到了相关的 watcher。
+组件的 render 是由 watcher 来代理执行的，在渲染页面的过程中，会初始化渲染 watcher ，watch 在执行之前会将自身添加到全局变量中 Dep.target。在生成 Vnode 的过程中，这时会访问 data 中定义的响应式数据，由此触发数据对象相应的 getter，收集到了全局变量 watcher 作为自身依赖。（收集到 watcher 是存放在 Dep实例 的 subs 中，其中 Dep 实例通过闭包的方式可以在 getter 和 setter 中访问到）
 
-watcher 是一个桥梁的作用。每个组件实例都对应一个 **watcher** 实例，在组件挂载的过程中，初始化渲染 watcher，会将自身添加到全局变量中，在之后渲染过程中，访问响应式数据触发 getter，收集 watcher。当数据变动派发更新时，会触发自身的更新方法执行绑定的回调。
+watcher 是一个桥梁的作用。每个组件实例都对应一个 **watcher** 实例。当响应式数据发生变动派发更新时，通知所有的依赖进行更新，也是通过 watcher  去重新调用渲染更新方法。
 
 简：响应式是基于 Object.defineProperty 深度遍历对数据对象进行劫持的。在 组件渲染的过程中（严格来说是生成 VNode时），会触发数据对象属性的 getter，从而收集到相应的 watcher。在对于数据对象属性进行修改的时候，会触发对应的 setter，从而通知收集到的依赖 watcher 进行更新，将它们放置到一个缓存队列中，通过 next-tick 在下一个循环中遍历更新对应的组件渲染。
 
 ### 对数组的特殊处理
 
-在 Vue 中无法监听到数组的变动，如通过索引值改变数组项，或直接修改数组的长度。
+在 Vue 中无法监听到数组的变动，例如通过索引值改变数组项，或直接修改数组的长度。
 
 实际上，Object.defineProperty 可以根据下标监听数组的变化，Vue 在代码层面屏蔽了这一逻辑，并且重写了数组原型中的 splice、push 等方法。
 
@@ -158,7 +158,7 @@ methodsToPatch.forEach(function (method) {
 
 在初始化阶段，分别对 computed 和 watch 触发 依赖的收集。
 
-在 render 过程中，会触发对渲染 watcher 的收集，此时 watcher 中通过数组对 dep 的缓存来避免重复的收集
+在 render 过程中，会触发对渲染 watcher 的收集，此时 watcher 中通过数组对 dep.id 的缓存来避免重复的收集
 
 同时当某一部分条件渲染的模板不再渲染，那么会移除订阅相关的观察者，避免数据改变时仍然触发其订阅的回调，避免浪费。
 
@@ -206,11 +206,13 @@ cleanupDeps () {
 
 #### proxy 的优劣
 
-Proxy可以直接监听对象和数组的变化，并且有多达13种拦截方法。proxy 可以之间劫持整个对象，并返回一个新的对象。不像 Object.defineProperty 需要对每个属性进行代理。因此，Vue 3 不需要在初始化阶段递归劫持所有属性的 get
+Proxy可以直接监听对象和数组的变化，并且有多达13种拦截方法。proxy 可以直接劫持整个对象，并返回一个新的对象。不像 Object.defineProperty 需要对每个属性进行代理。因此，Vue 3 不需要在初始化阶段递归劫持所有属性的 get
+
+Proxy 拦截的是 「修改 data 上的任意 key」 和 「读取 data 上的任意 key」，无论是该属性是已有的还是新增的
 
 proxy 可以之间对数组进行操作（push、splice 等）
 
-proxy 拦截方式多，例如 aplly、has 等
+proxy 拦截方式多，例如 apply、has 等
 
 proxy 劣势在于其兼容性问题，且无法完美得 polyfill 方案。
 
@@ -276,14 +278,16 @@ Vue 3 通过 reative 方法完成对数据的响应式代理。其本质是通�
 
 #### 实现
 
-优先使用 microTask，往后逐渐降级为 macro task 的 setTimeout：
+Vue 内部首先会进行当前环境 api 支持的判断。优先使用 microTask，往后逐渐降级为 macro task 的 setTimeout：
 
 1. promise.then
 2. MutationObserver (监听 DOM 树的更改)
 3. setImmediate
 4. setTimeout
 
-原因在于，往往两个 macro task 之间会穿插 UI 渲染（例如 v-on 绑定的事件回调回强制走 macro task）。结合 JS 执行任务队列机制，调用栈空闲后会执行先清空 micro task 队列，然后才会执行下一个 macro task。因此可以优先在 micro task 中把 UI 渲染之前需要更新的数据全部更新，这样只需一次渲染就能得到最新的 DOM。
+nextTick 函数接收到一个回调后不会立刻去执行它，而是将这些回调函数 push 到一个队列中。如果同一个 watcher 被多次触发，只会被推入到队列中一次。这样可以去除重复数据对于避免不必要的计算和 DOM 操作是非常重要的。等待一个时机将队列全部清空。这里的时机就是上述的任务队列。优先微任务队列。
+
+原因在于，往往两个 macro task 之间会穿插 UI 渲染（例如 v-on 绑定的事件回调会强制走 macro task）。结合 JS 执行任务队列机制，调用栈空闲后会执行先清空 micro task 队列，然后才会执行下一个 macro task。因此可以优先在 micro task 中把 UI 渲染之前需要更新的数据全部更新，这样只需一次渲染就能得到最新的 DOM。如果使用的是 task，回调队列会在当前 task 和 微任务队列执行完成后的之后某个 task 中处理，这时候可能已经进行了多次的 UI 渲染，这就会导致 DOM 操作的延迟。
 
 #### 应用
 
@@ -295,13 +299,15 @@ Vue 3 通过 reative 方法完成对数据的响应式代理。其本质是通�
 
 #### computed
 
-computed 依赖其他属性的计算值，并且有缓存。只有当其依赖的值发生变化时才会更新。
+1. computed 是 Vue 中的计算属性，应用在某个值是依赖了其它的响应式对象甚至是计算属性计算而来的场景。
 
-在初始化阶段，先会初始化对应的 computed watcher 实例，接着通过 Object.defineProperty 对数据对象进行代理，添加 getter 和 setter。computed watcher 在初始化构造函数中不做任何操作。
+2. computed 本质上也是一个 **watcher** 实例。在计算属性初始化阶段，先会初始化对应的 computed watcher 实例，接着通过 Object.defineProperty 对数据对象进行代理，添加 getter 和 setter。和渲染 watcher 的区别在于，computed watcher 在初始化构造函数中不会进行求值的操作，因为计算属性可能依赖了其他的计算属性，而在初始化阶段还拿不到其他计算属性的值。
 
-当在渲染 patch 中，触发了 computed 属性的 getter，首先会对其进行求值，求值的过程中会触发其依赖的所有响应式数据的 getter，因此所有依赖数据的 dep 订阅了 computed watcher（同时 computed watcher 的 deps 收集到了依赖数据的 dep），并且每个依赖数据的 dep 收集到渲染 watcher（watcher.depend -> this.deps[i].depend）。
+3. 当在渲染 patch 中，触发了 computed 属性的 getter，首先会对其进行求值，求值的过程中会触发其依赖的所有响应式数据的 getter，因此所有依赖数据的 Dep 订阅了 computed watcher（同时 computed watcher 的 deps 收集到了依赖数据的 dep），并且每个依赖数据的 dep 收集到渲染 watcher（watcher.depend -> this.deps[i].depend）。
 
-当依赖数据改变时，触发其 dep 中收集到的 watcher 的更新，此时 watcher 中含有 computed watcher 与 渲染 watcher。当在触发渲染 watcher 更新的过程中，又会触发这些响应式的数据的 getter，在对应的计算属性值的 getter 中会去获取其最新的值渲染到页面上。
+4. 计算属性是有**缓存**的，主要体现 watcher 内部使用了 dirty 用了标识数据是否需要重新计算求值。在第一次求值完成后，会将 watcher 内部的 dirty 标识置为 false。如果有其他地方访问到这个数据时，发现 dirty 是 false，就会直接读取。当计算属性的依赖数据变化时，会通知 watcher 将自身的 dirty 置为 true，当下次被访问到这个值的时候，会重新求值并且再次把 dirty 置为 false。
+
+5. 当依赖数据改变时，触发其 dep 中收集到的 watcher 的更新，此时 watcher 中含有 computed watcher 与 渲染 watcher。当在触发渲染 watcher 更新的过程中，又会触发这些响应式的数据的 getter，在对应的计算属性值的 getter 中会去获取其最新的值渲染到页面上。
 
 相对比于旧版 Vue 的实现，新版让依赖数据的 dep 持有 computed watcher 与 渲染 watcher，在调用 computed watcher 时，会将 this.dirty 置为 true（为了后续调用 evaluate 方法），调用渲染 watcher 时，获取 computed 最新的值。旧版实现为，在computed watcher 实例内部初始化了一个 dep，并收集了渲染 watcher。当依赖数据对象改变时，触发了 computed watcher 的更新，此时获取到该计算属性的最新值与旧值做对比，如果不同则会调用实例中 dep 持有的渲染 watcher 更新，由此触发了页面的重新渲染。
 
@@ -309,7 +315,13 @@ computed 依赖其他属性的计算值，并且有缓存。只有当其依赖�
 
 #### watch
 
-侦听属性 watcher 也是根据用户的定义，通过生成 watcher 实例来实现的。本质上也是一个 watcher。同样地，在构造函数内初始化阶段（option.user = true）会调用 this.get() 方法，获取到该 watcher 对应的数据对象值，这时候会触发数据对象的 getter，收集到侦听属性的 watcher，如果侦听的值是一个对象并且配置了 deep 属性为true，则会深度遍历对应的数据对象，在遍历的时候会触发对象子属性的 getter，这样就可以对象下的每个子属性都会收集到这个 watcher。如果不开启 deep，则只能够触发对象最外层属性的 getter，对其子属性的更改则不会触发更新。
+侦听属性 watcher 也是根据用户的定义，通过生成 watcher 实例来实现的。本质上也是一个 watcher。同样地，在构造函数内初始化阶段（option.user = true）会调用 this.get() 方法，获取到该 watcher 对应的数据对象值，这时候会触发数据对象的 getter，收集到侦听属性的 watcher。
+
++ deep
+
+如果侦听的值是一个对象并且配置了 deep 属性为true，则会深度遍历对应的数据对象，在遍历的时候会触发对象子属性的 getter，此过程中也会不断发生依赖收集，这样就可以对象下的每个子属性都会收集到这个 watcher。如果不开启 deep，则只能够触发对象最外层属性的 getter，对其子属性的更改则不会触发更新。
+
+如果只是想监听对象中某一个属性的变化，可以直接对该属性进行 watch 而不需要设置 deep 监听整个对象变化造成浪费。
 
 + sync 配置
 
@@ -353,13 +365,23 @@ export function queueWatcher (watcher: Watcher) {
 
 如果 Vue.config.async 为 false，则也会同步的执行 flushSchedulerQueue，而不是在下一个 tick。
 
-### 什么是 VDOM，使用 VDOM 的意义 （待完善）
+### 什么是 VDOM，使用 VDOM 的意义
 
-背景： DOM 的操作非常耗性能。
+背景： 频繁的 DOM 操作非常耗性能。
 
 解决方案：JS 计算的执行速度较快， Vdom 是通过使用 js 来模拟 DOM 结构，计算出最小的变更，来操作 DOM。
 
 JS 具体结构： 可以通过 tag（标签）、props（属性、样式、事件等）、children（子元素） 
+
+框架实际上是一个性能与可维护性的取舍，它可以为我们掩盖底层的 DOM 操作，可以让我们用声明式的方法来维护代码。但是框架不可能比纯手工优化过的 DOM 操作更快（diff 不是免费的）。但我们不可能在每个地方都去做手动优化，处于可维护性来考虑，框架给到我们的是在保证不需要手动优化的情况下，给我们提供一个过得去的性能。
+
+Virtual DOM render + diff 显然比渲染 html 字符串要慢，但是！它依然是纯 js 层面的计算，比起后面的 DOM 操作来说，依然便宜了太多。可以看到，innerHTML 的总计算量不管是 js 计算还是 DOM 操作都是和整个界面的大小相关，但 Virtual DOM 的计算量里面，只有 js 计算和界面大小相关，**DOM 操作是和数据的变动量相关的**。前面说了，和 DOM 操作比起来，js 计算是极其便宜的。这才是为什么要有 Virtual DOM：它保证了 1）不管你的数据变化多少，每次重绘的性能都可以接受；2) 你依然可以用类似 innerHTML 的思路去写你的应用。
+
+diff 并不是免费的，在最终 patch 的时候依然需要调用原生 API。
+
+总结，VDOM 的使用并不是纯粹为了性能，而是保证了无论更新数据量的多少，性能都可以接受。相比于所有数据都变了，那么直接使用原生优化过的手段操作 DOM 实际上会比较优秀，但是如果小规模的数据更新情况下，VDOM 只有 js 的计算和界面大小相关，而 DOM 的操作则是和数据的变动量有关，这里可以体现出优势。VDOM 的价值让我们可以使用函数式 UI 编程，并还能够把 DOM 渲染到其他的端，例如 RN。
+
+在初次渲染的时候 react 由于需要生成 VDOM 再去渲染真实 DOM，这个过程会比原生慢，但是之后每一次渲染，都会快过于。
 
 ### v-model 的实现
 
@@ -375,6 +397,32 @@ JS 具体结构： 可以通过 tag（标签）、props（属性、样式、事�
 
 在 编辑阶段会生成一个 model 对象，包含 value、callback、expression，用于运行时阶段将其转换为 props 和 events。
 
+### v-show 与 v-if
+
+对于 v-if 而言，如果初始值是 false，则什么都不会做。只有当为 true 时才会去渲染。而 v-show 无论初始条件是什么都会进行渲染，因此它的初始渲染开销更大。
+
+由于 v-if 在切换过程中会对子组件以及事件监听销毁和重建，而 v-show 只是基于 css display 的切换。因此 v-if 切换开销更大。在需要频繁切换的场景下，v-show 合适，反之使用 v-if。
+
+### v-html
+
+该指令能够动态渲染任意 HTML，带来 XSS 攻击的风险。
+
+### 命令式 API 调用组件
+
+可以通过 vm.$mount() 先生成一个未挂载的 Vue 实例。并且可以通过原生 DOM API 来将它插入到文档流中：
+
+```js
+var MyComponent = Vue.extend({
+  template: '<div>Hello!</div>'
+})
+
+var instance = new MyComponent()
+instance.$mount() // 此时未挂载
+document.body.appendChild(instance.$el) // 手动通过原生 API 挂载
+```
+
+
+
 ### 指令的实现
 
 在模板编译阶段，会解析指令添加到 AST 树中，并且最终可以通过 Vnode 中的属性获取到节点绑定的指令。在进行节点比对时，会触发一系列 module 钩子函数，这其中就包含了指令相关的钩子，最终根据不同的情况触发指令内的钩子函数。
@@ -383,11 +431,11 @@ JS 具体结构： 可以通过 tag（标签）、props（属性、样式、事�
 
 普通插槽
 
-父组件编译节点会添加一个 slot 属性并指向定义的 slotTarget（slot="slotTarget"）。
+父组件编译节点会给 AST 添加一个 slotTarget 属性，在生成代码阶段处理这个属性，添加上一个 slot 属性并指向定义的 slotTarget（slot="slotTarget"）。
 
-子组件遇到 slot 标签时，会给对应的 ast 元素节点添加 slotName属性，在 codegen 计算，会判断是否为 slot 标签，执行 genSlot 方法。
+子组件遇到 slot 标签时，会给对应的 ast 元素节点添加 slotName 属性（这里的 slotName 对应父组件的 slotTarget），在 codegen 计算，会判断是否为 slot 标签，执行 genSlot 方法。
 
-父组件完成编译后会生成插槽节点对应的 vnode，数据的作用域是父组件实例。在子组件 init 时，维护了一个 slots 对象按插槽名称 key 获取父组件中对应的编译完成后的 child 节点 Vnode 。在生成 slot 节点时，可以借助这个 slots 对象，拿到已经渲染好的 vnode。
+编译的顺序是先父后子。父组件完成编译后会生成插槽节点对应的 vnode，数据的作用域是父组件实例。在子组件 init 时，维护了一个 slots 对象按插槽名称 key 获取父组件中对应的编译完成后的 child 节点 Vnode 。在子组件生成 slot 节点时，可以借助这个 slots 对象，拿到已经渲染好的 vnode，实现了在父组替换子组件插槽的内容了。
 
 作用域插槽
 
@@ -440,6 +488,10 @@ with(this){
 
 总结，它的实现通过了自定义 render 并且利用了插槽。通过 cache 了组件的 vnode，直接拿到组件实例，获取组件 dom 和状态
 
+#### 总结
+
+keep-alive 可以让我们在组件切换的时候保存先前组件的状态，以避免反复重渲染导致的性能问题。它的实现本质上是通过 slot 插槽来实现的，渲染插槽内的组件时会将对应的 vnode 缓存到 cache 变量中。当组件切换回到初始组件时，会去读区 cache 中的 vnode ，这时候再去渲染的时候就不会去创建组件实例和挂载，而是直接将组件插入，触发 active 相关的生命周期。
+
 
 ### Vue event 事件
 
@@ -466,15 +518,15 @@ Vue的编译过程就是将`template`转化为`render`函数的过程。
 
 + parse
 
-  目标是把 `template` 模板字符串转换成 AST 树。执行 parseHTML 方法，利用正则表达式**顺序**解析模板，当解析到开始标签、闭合标签、文本的时候都会分别执行对应的回调函数，这个过程中会分析标签中的属性、事件等等，最终构造 AST 树。其中利用 stack 栈保证元素的正确闭合。最终生成的 AST 元素节点有3种类型，1 - 普通元素；2 - 表达式；3 - 纯文本
+  **目标是把 `template` 模板字符串转换成 AST 树**。执行 parseHTML 方法，**利用正则表达式顺序解析模板**，当解析到开始标签、闭合标签、文本的时候都会分别执行对应的回调函数，**这个过程中会分析标签中的属性、事件等等，最终构造 AST 树。*其中利用 stack 栈保证元素的正确闭合。最终生成的 AST 元素节点有3种类型，1 - 普通元素；2 - 表达式；3 - 纯文本****
 
 + optimize 优化
 
-  一些非响应式的数据不会使 DOM 变化，因此在优化过程中可以跳过对这些节点的对比。判断的依据是根据其是否为表达式，即type === 3。如果 type 为 1则会深度遍历它所有的 children，检测它的每一颗子树是不是静态节点。而静态根节点（type 为 1） staticRoot 的判断依据是，除了本身是一个静态节点外，还必须有 children且 children 不能只是一个文本节点。如果是静态节点则它们生成 DOM 永远不需要改变，这对运行时对模板的更新起到极大的优化作用。static / staticRoot 字段。
+  **一些非响应式的数据不会使 DOM 变化，因此在渲染 patch 过程中可以跳过对这些节点的对比。**判断的依据是根据其是否为表达式，即type === 3。如果 type 为 1则会深度遍历它所有的 children，检测它的每一颗子树是不是静态节点。而静态根节点（type 为 1） staticRoot 的判断依据是，除了本身是一个静态节点外，还必须有 children且 children 不能只是一个文本节点。如果是静态节点则它们生成 DOM 永远不需要改变，这对运行时对模板的更新起到极大的优化作用。**static / staticRoot 字段。**
 
 + Codegen 将 AST 转换为可执行代码
 
-  执行结果包裹在 with 语句中。接着会通过 new Function 的方式将其转换为可执行函数赋值给 vm.options.render，当组件执行 vm._render 的时候，会执行这个 render 函数，vnode = render.call(vm._renderProxy, vm.$createElement) 生成 VNode。
+  **通过执行各种 genXXX 方法将 ast 上的属性通过字符串拼接变为函数字符串。执行结果包裹在 with 语句中。接着会通过 new Function 的方式将其转换为可执行函数赋值给 vm.options.render，**当组件执行 vm._render 的时候，会执行这个 render 函数，vnode = render.call(vm._renderProxy, vm.$createElement) **生成 VNode。**
 
 总结
 
@@ -485,7 +537,7 @@ Vue的编译过程就是将`template`转化为`render`函数的过程。首先�
 原则
 
 + 只比较同一层级，不跨级比较
-+ 判断一方有子节点一方没有子节点的情况，新children 无则将旧的删除，旧的无，则新增
++ 判断一方有子节点一方没有子节点的情况，新 children 无则将旧的删除，旧的无，则新增
 + 都有子节点的情况下进入核心diff算法比较
 + 递归比较子节点
 
@@ -591,7 +643,7 @@ key 作为唯一的标记，用于区分不同的 vnode，在新旧节点的对�
 
 ### 为什么 v-if 不要和 v-for 一起使用
 
-在编译过程中，v-for 的优先级要高于 v-if，因此如果在同一个节点上同时使用了v-if 和 v-for，那么在循环生成每一条数据时都要对 v-if 进行判断，造成了没必要的性能消耗。可以通过把 v-if 绑定在 v-for 的上一级父节点上，或者在给循环列表的数据赋值前进行过滤。
+当 v-for 和 v-if 处在同一个节点的时候，在编译过程中，v-for 的优先级要高于 v-if（v-for 判断早于 v-if），因此通过 VNode 生成的最终代码中，在循环生成每一条数据时都要对 v-if 进行判断，造成了没必要的性能消耗。可以通过把 v-if 绑定在 v-for 的上一级父节点上，或者在给循环列表的数据赋值前进行过滤。
 
 ### React Diff
 
@@ -610,7 +662,7 @@ key 作为唯一的标记，用于区分不同的 vnode，在新旧节点的对�
   + 首先维护一个数组，长度与**新节点列表中**未处理的节点数量相同，用于记录新列表的节点在旧列表中的位置。
   + 接着循环遍历旧节点列表，尝试在新的节点中找到 key 相同的节点，移除没有找到的节点，同时维护更新数组
   + 接着就是新增和移动的处理，**从尾到头**遍历数组，如果是新增，则新增节点，如果非新增，则表示需要被移动，这时候将其移动至对应的 index （插入到该节点在新节点中位置的下一个节点位置）之前。
-  + 在遍历的过程中，存在不需要移动的节点，即在其他节点移动完成后，这些节点的顺序自然是正确的，因此还会根据数组还维护了一份最长递增子序列，用来标识不需要移动的节点。
+  + 在遍历的过程中，存在不需要移动的节点，即在其他节点移动完成后，这些节点的顺序自然是正确的，因此还会根据数组还维护了一份最长递增子序列，用来标识不需要移动的节点（目的是尽可能多的减少节点移动）。
 
 总结：
 
@@ -667,6 +719,28 @@ composition API 的优势
 + 在导入时，需要显式命名任何状态或从组成函数返回的方法。
 + 隐含依赖关系通过必须将响应式数据显式传递给组合函数
 
+### HOC
+
+Vue 组件导出后与 react 组件不同，它是一个对象的形式，因此在 Vue 中实现 Hoc 本质上是实现一个函数，该函数传入一个组件对象，并同时也返回一个组件对象。这里就需要用到 render 方法。
+
+```js
+// hoc.js
+export default (wrap) => {
+  return render(h) {
+    const arg = {
+    	// 混入 $attrs
+      ...this.$attrs,
+      // 传递事件
+      on: this.$listeners,
+      scopedSlots: this.$scopedSlots
+    }
+    return h(wrap, arg)
+  }
+}
+```
+
+
+
 ### 封装一个简易的组件库（参考 Element）
 
 + [实现一套组件库](https://juejin.im/post/5e200ee86fb9a02fdd38986d)
@@ -722,6 +796,30 @@ install 阶段通过 Vue.mixin 给每个组件混入 beforeCreate 钩子，作�
 + 动态模板更新（模块动态注册功能使得其他 Vue 插件可以通过在 store 中附加新模块的方式来使用 Vuex 管理状态。）
 
   模块的动态注册实现和初始化类似，首先注册拓展的模块树，接着同样是安装模块、resetStoreVM重新维护 state。
+
+#### 总结
+
++ 与全局对象的对比 & 如何限制 state 的修改途径
+
+我们在使用时会通过 Vuex.store 生成 store 的实例化对象，并且把它作为 option 传递到 Vue 实例中。这样使得我们在 Vue 代码中可以通过 this.$store 来访问到 store 上的数据。
+
+Vuex 相比于全局对象而言，它所有存储的数据都是响应式的，如果 store 中的状态发生改变，那么依赖它的组件也会得到更新，这是由于 Vuex 内部在是通过一个 Vue 实例来绑定 state 和 getters，当我们在访问 state 或者 getter 时，实际上是在访问内部 Vue 实例上的响应式数据。
+
+另外我们不能直接去改变 store 中的状态，改变的唯一方法是通过 commit，这样可以方便地跟踪每一个状态变化。在 Vue 内部，由于 state 和 getters 实际上是通过 vue 实例关联的。通过除了 commit 方法之外的形式（例如直接改变 store.state 或在 dispatch 过程中改变 state）修改 state 会提示警告。这是由于 Vuex 内部开启了对于 state 的 watch，state 的改变只有在开关 _committing 为 true 的时候才能允许。只有在 mutation 执行之前才会将开关打开。
+
+```js
+// 该方法会在触发 commit 时调用，将回调函数传入
+Store.prototype._withCommit = function _withCommit (fn) {
+  var committing = this._committing;
+  this._committing = true;
+  fn();
+  this._committing = committing;
+};
+```
+
++ 为什么 mutation 中不能做异步操作
+
+  这样区分 action 与 mutation 是为了更好的利用调试工具来追踪状态变化。同步的意义在于每个 mutation 执行完成后都可以对应到一个新的状态，这样在调试工具中就可以保存下来。异步操作没有办法知道状态是何时更新的。
 
 ### Vue-router 的整体实现
 
@@ -783,7 +881,7 @@ url
 
 + router-view
 
-  由于在初始化时，根 Vue 实例的 `_route` 属性定义成响应式的。在 render 过程中，都会会访问父组件上的 $route 属性。最终触发这个属性的 getter，收集到了渲染 watcher。在执行完 transitionTo （路径切换）后，会修改这个响应式属性，触发了它的 setter，因此通知渲染 watcher 更新，重新执行了 router-view 组件的 render 渲染，在 render 中获取到当前路由对应的组件，调用 createElement 方法渲染。
+  由于在初始化时，根 Vue 实例的 router 定义成响应式的。在 render 过程中，都会会访问父组件上的 $route 属性。最终触发这个属性的 getter，收集到了渲染 watcher。在执行完 transitionTo （路径切换）后，会修改这个响应式属性，触发了它的 setter，因此通知 router-view 的渲染 watcher 更新，重新执行了 router-view 组件的 render 渲染，在 render 中获取到当前路由对应的组件，调用 createElement 方法渲染。
 
 + router-link
 
@@ -792,6 +890,14 @@ url
 #### 总结
 
 在进行路由切换时，会把当前的线路切换到目标的线路，在切换过程中会执行一系列导航守卫钩子函数，并且更改 url，同时最后渲染对应的组件。切换完成后把目标的路由切换为当前路由，用作下一次路径切换的依据。
+
++ hash 模式
+
+  通过监听 hashchange 事件来监听 hash 变化，根据变化来更新页面内容
+
++ history 模式
+
+  依赖 pushState 和 replaceState 这两个 API 来操作历史栈
 
 ## 框架层 
 
