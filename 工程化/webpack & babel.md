@@ -5,14 +5,13 @@
 代码层面
 
 + 通过对代码的压缩，公共模块、第三方模块的抽离拆分，异步加载等方法减小代码体积，提升加载效率
-+ 能够编译高级语法 TS、ES6、Scss
++ 能够集成多种 loader 来编译高级语法 TS、ES6、Scss
 + 自动化兼容性与错误检查 （polyfill、eslint）
 
 研发流程角度
 
-+ 统一开发环境
 + 统一构建流程和产出
-+ 能够自动集成公司构建，提高了工程化效率
++ 能够自动集成公司构建，不用重复配置，统一开发环境，提高了工程化效率
 
 ### 基本使用
 
@@ -26,7 +25,7 @@
 + url-loader: 通常用于加载图片，可以将小图片直接转换为 Date Url，减少请求；
 + babel-loader: 加载 js / jsx 文件， 将 ES6 / ES7 代码转换成 ES5，抹平兼容性问题；
 + ts-loader: 加载 ts / tsx 文件，编译 TypeScript；
-+ style-loader: 将 css 代码以``标签的形式插入到 html 中；
++ style-loader: 将 css 代码以标签的形式插入到 html 中；
 + css-loader: 分析`@import`和`url()`，引用 css 文件与对应的资源；
 + postcss-loader: 用于 css 的兼容性处理，具有众多功能，例如 **添加前缀，单位转换** 等；
 + less-loader / sass-loader: css预处理器，在 css 中新增了许多语法，提高了开发效率；
@@ -109,7 +108,7 @@ if(module && module.hot) {
 
 基于 websocket 来实现的。在运行 webpack-dev-server 命令时，会启动 webpack，监听文件的编译状态。另外在开启本地服务之前会修改webpack配置中的入口 entry 的配置，将 websocket、热更新相关的代码一起打包，最后打包运行在客户端，可以让浏览器端接收到websocket消息。本地文件改动重新编译后，浏览器端会收到hash、ok的消息，会将hash保存，当收到ok的消息时进行重载。
 
-如果配置了热更新模块，先请求返回一个 json，包含了要更新模块的 hash，再通过 jsonp 的方式来获取最新的代码，执行模块的更新替换，删除就模块等。 如果过程中出现错误则会会退为刷新浏览器来获取最新代码。
+如果配置了热更新模块，先请求返回一个 json，包含了要更新模块的 hash，再通过 jsonp 的方式来获取最新的代码，执行模块的更新替换，删除就模块等。 如果过程中出现错误则会回退为刷新浏览器来获取最新代码。
 
 详细过程参考：
 
@@ -203,11 +202,25 @@ webpack默认使用TerserWebpackPlugin，**默认开启**多进程与缓存，�
     + dll
     + 大部分 `loader` 都提供了`cache` 配置项。比如在 `babel-loader` 中，可以通过设置`cacheDirectory` 来开启缓存，`babel-loader?cacheDirectory=true`。不支持 cache 配置的 loader 可通过 cache-loader 将编译写过写入缓存。
   + 压缩
-
 + 代码层
   + 作用域提升 scope hosting 将分散的模块划分到同一个作用域中，有效减少打包后的代码体积和运行时的内存损耗
   + 抽离第三方库、公共模块
   + 删除无用代码 tree-shaking
++ 构建速度
+  + 优化 babel-loader 开启缓存
+  + ignorePlugin
+  + noParse
+  + happyPack
+  + ParallelUglifyPlugin
+  + 热更新 no production
+  + DLL no production
++ 产出性能优化
+  + 小图 base64
+  + bundle hash
+  + 懒加载
+  + 提取公共代码
+  + CDN
+  + scoped hosting
 
 优化本身是一件拆东补西的事，比如提取出一个公共 chunk，打包产出的文件就会多一个，也必然会增加一个网络请求。当项目很庞大，每个公共模块单独提取成一个 chunk 会导致打包速度出奇的慢，影响开发体验，所以通常会取折衷方案，将重复的较大模块单独提取，而将一些重复的小模块打包到一个 chunk，以减少包数量，同时不能让这个包太大，否则会影响页面加载时间。
 
@@ -234,9 +247,11 @@ Babel 用于解决 JS 不同版本的语法差异。Babel 本身只关注语法�
 
 ### babel-preset
 
-preset 可以作为 Babel 插件的组合，该模块预设了一组常用的插件集合。
+babel 本质上是通过插件来完成各种流程的转换，如果不给 Babel 装上插件，它将会把输入的代码原封不动地输出。preset 可以作为 Babel 插件的组合，该模块预设了一组常用的插件集合。
 
 ### babel-polyfill
+
+Babel 无法针对新的 API 进行降级转换，例如 includes 等，因此需要 babel-polyfill 来完成
 
 babel-polyfill 本质上是 core-js 与 regenerator 的集合
 

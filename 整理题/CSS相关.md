@@ -4,11 +4,12 @@ BFC 是页面的 CSS 渲染的一部分。是一个独立的布局渲染环境�
 
 ### 布局规则
 
++ BFC是一个独立的容器，外面的元素不会影响里面的元素
 + 内部的 Box 会在垂直方向上一个接一个的放置
-+ 在一个BFC中，块盒与行盒（行盒由一行中所有的内联元素所组成）都会垂直的沿着其父元素的边框排列
-+ 在BFC中，每一个盒子的左外边缘（margin-left）会触碰到容器的左边缘(border-left)（从左到右的格式化）
++ 垂直方向上两个块外边距重叠
 + BFC 区域不会与浮动元素重叠
 + 计算 BFC 高度时，浮动元素也参与计算
++ 在BFC中，每一个盒子的左外边缘（margin-left）会触碰到容器的左边缘(border-left)（从左到右的格式化）
 
 ### 触发条件
 
@@ -16,6 +17,7 @@ BFC 是页面的 CSS 渲染的一部分。是一个独立的布局渲染环境�
 + position 的值不是 static 或者 relative
 + display 的值是 inline-block、table-cell、flex、table-caption或者inline-flex
 + overflow 的值不是 visible
++ 网格元素
 
 ### 作用
 
@@ -38,6 +40,8 @@ https://blog.csdn.net/sinat_36422236/article/details/88763187
 ## 布局
 
 ### Flex（弹性） 布局
+
+可以运用在解决垂直居中的问题
 
 #### 容器属性
 
@@ -63,7 +67,7 @@ https://blog.csdn.net/sinat_36422236/article/details/88763187
   + center 居中
   + baseline 与项目的第一行文字的基准线对齐
   + Stretch 如果元素未设置高度或者设置为 auto，则会占满整个容器高度（默认）
-+ align-content 多行情况下对齐方式
++ align-content 多行（主轴）情况下对齐方式
   + flex-start
   + flex-end
   + center
@@ -85,7 +89,7 @@ https://blog.csdn.net/sinat_36422236/article/details/88763187
 
 + flex-basis 元素占据空间
 
-  在有多余分配空间之前，可根据该属性来设置元素占用的空间，其值与设置 width 或 height 相同（例如100px）
+  默认为 auto，即元素本来的大小。在有多余分配空间之前，可根据该属性来设置元素占用的空间，其值与设置 width 或 height 相同（例如100px）
 
 + flex  `flex-grow`、`flex-shrink` 和 `flex-basis` 的组合简写
 
