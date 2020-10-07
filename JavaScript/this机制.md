@@ -320,7 +320,7 @@ Function.prototype.myCall = function(context, ...arg) {
     } else {
       context = Object(context) // 考虑传入原始值情况，将其隐式转换为对象
     }
-    const tempProto = Symbol.for('temp') // 使用Symbol保证了不会覆盖context原有属性，且保持了唯一性
+    const tempProto = Symbol('fn') // 使用Symbol保证了不会覆盖context原有属性，且保持了唯一性
     context[tempProto] = this // 将this绑定到context上，this可看做是函数本身
     let result = context[tempProto](...arg) // 传参
     delete context[tempProto] // 删除上下文对象属性
@@ -345,9 +345,8 @@ Function.prototype.myApply = function (context) {
     }
     // 类数组判断
     function isArrayLike(o) {
-        if (o &&                                    // o不是null、undefined等
+        if (o &&                                   // o不是null、undefined等
            typeof o === 'object' &&                // o是对象
-           isFinite(o.length) &&                   // o.length是有限数值
            o.length >= 0 &&                        // o.length为非负值
            o.length === Math.floor(o.length) &&    // o.length是整数
            o.length < 4294967296)                  // o.length < 2^32
@@ -355,7 +354,7 @@ Function.prototype.myApply = function (context) {
         else
            return false
     }
-    const tempProto = Symbol.for('temp')
+    const tempProto = Symbol('fn')
     context[tempProto] = this
     let args = arguments[1]
     let result
@@ -426,10 +425,10 @@ Function.prototype.bind = function(oThis) {
       throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable');
     }
 
-    var aArgs   = Array.prototype.slice.call(arguments, 1),
-        fToBind = this,
-        fNOP    = function() {},
-        fBound  = function() {
+    const aArgs   = Array.prototype.slice.call(arguments, 1)
+    const fToBind = this
+    let fNOP    = function() {},
+    let fBound  = function() {
           // this instanceof fBound === true时,说明返回的fBound被当做new的构造函数调用
           return fToBind.apply(this instanceof fBound
                  ? this
@@ -476,7 +475,7 @@ return fBound
 这种情况如果我们通过修改`fBound.prototype`可以直接修改`this.prototype`。所以polyfill中使用了借由`fNOP`为中介的方式，把`fBound.prototype`赋值给`fNOP`的实例。当然，我们还可以借由`Object.create()`实现：
 ```js
 // ...
-fBound.prototype = Object.create(fToBind.prototype)
+fBound.prototype = Object.create(this.prototype)
 
 return fBound
 ```
@@ -489,7 +488,8 @@ compose函数，接受一组函数，从右向左执行，前一个函数的返�
 ```js
 const getText = name => `HELLO ${name}`
 const toUpper = str => str.toUpperCase()
-const fn = compose(toUpper, getText)
+const test = str => str + '!'
+const fn = compose(test, toUpper, getText)
 fn('world') // 'hello world'
 ```
 
@@ -500,11 +500,11 @@ const compose = function(...arg) {
   let len = arg.length
   let count = len - 1
   let result // 执行结果
-  return function(...innerArg) {
+  return function fn(...innerArg) {
     result = arg[count].call(this, innerArg)
     if (count > 0) {
       count--
-      return arg[count].call(null, result)
+      return fn.call(null, result)
     } else {
       return result
     }

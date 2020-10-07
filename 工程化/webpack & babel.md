@@ -247,7 +247,7 @@ Babel 用于解决 JS 不同版本的语法差异。Babel 本身只关注语法�
 
 ### babel-preset
 
-babel 本质上是通过插件来完成各种流程的转换，如果不给 Babel 装上插件，它将会把输入的代码原封不动地输出。preset 可以作为 Babel 插件的组合，该模块预设了一组常用的插件集合。
+babel 本质上是通过插件来完成各种流程的转换，如果不给 Babel 装上插件，它将会把输入的代码原封不动地输出。preset 可以作为 Babel 插件的组合，该模块预设了一组常用的插件集合。`env`preset 这个 preset 包括支持现代 JavaScript(ES6+) 的所有插件。
 
 ### babel-polyfill
 
@@ -260,9 +260,7 @@ babel-polyfill 本质上是 core-js 与 regenerator 的集合
 
 在 babel 7.4 之后，弃用 babel-polyfill。
 
-不推荐直接引入 polyfill 的方式，而是改为按需引入配置即可：
-
-`env`preset 这个 preset 包括支持现代 JavaScript(ES6+) 的所有插件。
+不推荐直接引入 polyfill 的方式（引入所有），而是改为按需引入（引入浏览器所需）配置即可（结合 env）：
 
 .babelrc 配置方式：
 
@@ -326,13 +324,17 @@ babel-polyfill 的问题在于会污染全局变量，其实现方式是通过�
 }
 ```
 
-
+由于是动态引入，并非挂载到全局上，针对实例化对象的方法，例如 [].include(x) 无法使用
 
 #### babel-runtime 和 babel-polyfill 的区别
 
 babel-runtime 不会污染全局变量，推荐在开发库的时候使用，同时它也能够支持按需引入，但是相关的 core-js 包会大一些。
 
 babel-polyfill 是通过覆盖原型或全局的方法来做兼容，在独立的 web 开发项目中可以使用。
+
+#### 动态 polyfill
+
+阿里云链接或 polyfill.io 通过检测 ua 来自动引入当前浏览器所需的 polyfill
 
 # 拓展
 

@@ -60,9 +60,9 @@ const bubbleSort = (arr, judge) => {
 const judge = (a, b) => a > b
 
 // 直接插入排序
-const insertSort = arr => {
+const insertSort = (arr) => {
 	for (let i = 1; i < arr.length; i++) {
-		let temp = arr[i];
+		let temp = arr[i]
 		// 从后往前
 		let j
 		for (j = i - 1; j >= 0; j--) {
@@ -145,37 +145,37 @@ const updateQuickSort = (arr, start, end) => {
 
 // 归并排序
 function merge(left, right) {
-  let result = []
-  while(left.length > 0 && right.length > 0) {
-    // 从小到大
-    if (left[0] < right[0]) {
-      result.push(left.shift())
-    } else {
-      result.push(right.shift())
-    }
+	let result = []
+	while (left.length > 0 && right.length > 0) {
+		// 从小到大
+		if (left[0] < right[0]) {
+			result.push(left.shift())
+		} else {
+			result.push(right.shift())
+		}
 
-    // // 从大到小
-    // if (left[0] < right[0]) {
-    //   result.push(right.shift())
-    // } else {
-    //   result.push(left.shift())
-    // }
-  }
-  return result.concat(left).concat(right)
+		// // 从大到小
+		// if (left[0] < right[0]) {
+		//   result.push(right.shift())
+		// } else {
+		//   result.push(left.shift())
+		// }
+	}
+	return result.concat(left).concat(right)
 }
 const mergeSort = (arr) => {
-  if (arr.length === 1) { 
-    return arr
-  }
-  const middleIndex = Math.floor(arr.length / 2)
-  const left = arr.slice(0, middleIndex)
-  const right = arr.slice(middleIndex)
-  return merge(mergeSort(left), mergeSort(right))
+	if (arr.length === 1) {
+		return arr
+	}
+	const middleIndex = Math.floor(arr.length / 2)
+	const left = arr.slice(0, middleIndex)
+	const right = arr.slice(middleIndex)
+	return merge(mergeSort(left), mergeSort(right))
 }
 
 // 希尔排序
-const shellSort = arr => {
-	let h = arr.length;
+const shellSort = (arr) => {
+	let h = arr.length
 	while (true) {
 		h = Math.floor(h / 2)
 		for (let x = 0; x < h; x++) {
@@ -190,7 +190,7 @@ const shellSort = arr => {
 						break
 					}
 				}
-				arr[j + h] = temp;	
+				arr[j + h] = temp
 			}
 		}
 		if (h === 1) {
@@ -212,11 +212,34 @@ const shellSort = arr => {
 
 // console.log(res)
 
-
 var a = [0, 1, 0, 2, 4]
 a.forEach((i, index) => {
-  if (i === 0) {
-    a.push(a.splice(index, 1)[0])
-  }
+	if (i === 0) {
+		a.push(a.splice(index, 1)[0])
+	}
 })
 console.log(a)
+
+Function.prototype.myBind = (oThis) => {
+	if (typeof this !== 'function') {
+		throw Error('error callable')
+	}
+
+	const outerArgs = Array.prototype.slice.call(arguments, 1)
+	const outerThis = this
+	const fNop = Object.create(null) // function() {} 
+	const fToBind = function () {
+		return outerThis.apply(
+			this instanceof fToBind ? this : oThis,
+			outerArgs.concat(Array.prototype.slice.call(arguments))
+		)
+	}
+
+	// 维护原型
+	if (this.prototype) {
+		fNop.prototype = this.prototype
+	}
+	fToBind.prototype = new fNop()
+	
+	return fToBind
+}

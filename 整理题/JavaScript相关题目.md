@@ -28,7 +28,7 @@
 function createNew(constructor, ...arg) {
 	let o = new Object()
 	constructor.apply(o, arg)
-	o.__proto__ = constructor.prototype
+	o.__proto__ = constructor.prototype // setPrototypeOf(o, constructor.prototype)
 	return o
 }
 ```
