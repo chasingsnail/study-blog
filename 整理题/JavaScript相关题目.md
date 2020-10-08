@@ -371,7 +371,7 @@ constructor其实没有什么用处，只是JavaScript语言设计的历史遗�
 ### 背景
 
 + 同源策略限制（协议，端口和域名相同）
-+ 同源策略从两方面限制：针对接口的请求和 DOM 的查询
++ 同源策略限制：针对接口的请求、DOM 的查询、Cookie、LocalStorage 和 IndexDB 无法读取。
 + 无同源策略的影响
   + CSRF 攻击，钓鱼网站跨域发送请求获取了 Cookie 鉴权信息
 
@@ -395,7 +395,7 @@ CORS 请求分简单与非简单请求。
 
 非简单请求中会首先发一次预检测（OPTIONS 方法），询问当前网页所在的域名是否在服务器的许可名单之中，以及可以使用哪些HTTP动词和头信息字段，返回码是 204，如通过才发出真正的请求返回 200.
 
-预检查除了设置 origin，还需要设置 Access-Control-Request-Method（检查请求方式是否支持） 以及 Access-Control-Request-Headers（指定浏览器CORS请求会额外发送的头信息字段）。
+预检查除了设置 origin，**还需要设置 Access-Control-Request-Method**（检查请求方式是否支持） 以及 Access-Control-Request-Headers（**指定浏览器CORS请求会额外发送的头信息字段**）。
 
 ```js
 // koa 配置 cors
@@ -416,7 +416,49 @@ CORS与JSONP的使用目的相同，但是比JSONP更强大。JSONP 只支持`GE
 
 Nginx 或 Express 起服务（webpack-dev-server）代理转发请求，代理将请求转发至真正的服务端地址，避免了跨域。
 
+```shell
+# nginx
+server{
+    # 监听9099端口
+    listen 9099;
+    # 域名是localhost
+    server_name localhost;
+    #凡是localhost:9099/api这个样子的，都转发到真正的服务端地址http://localhost:9871 
+    location ^~ /api {
+        proxy_pass http://localhost:9871;
+    }    
+}
+```
 
+```js
+// webpack
+proxyTable: {
+  '/api': {
+    target: `http://localhost:9000`,
+    ws: true,
+    changeOrigin: true,
+    pathRewrite: {
+      '^/api': '/api'
+    }
+  }
+}
+```
+
+#### 不同页面跨域通信
+
++ postMessage
+
+  通过 iframe postMessage 发送消息。接受方通过监听 message 事件捕获消息
+
++ document.domain
+
+  用于主域名相同，子域名不同的场景，例如 比如主域名是 `http://crossdomain.com:9099`，子域名是`http://child.crossdomain.com:9099`。此时会收到同源策略限制，只要设置相同的 `document.domain = crossdomain.com`即可
+
++ location.hash
+
+  通过第三个页面来监听 hash 事件，通过 hash 来传值并且 js 用于通信
+
+参考：[不要再问我跨域的问题了](https://segmentfault.com/a/1190000015597029)
 
 ## Event Loop
 
@@ -425,7 +467,7 @@ Event Loop 是 JS 的执行机制。在主线程运行 JS 代码时，调用了�
 JS 的任务分为**微任务**与**宏任务**。
 
 + 宏任务主要有 setTimeout、setInterval、settImmediate、UI 渲染等
-+ 微任务主要有 nextTick、Promise.then 等
++ 微任务主要有 nextTick、Promise.then 等，在 async 函数中，**await 之前的代码可以看做是同步的**，可以直接按顺序执行，而 await 后面跟着的的 promise 函数，可以被转化为`Promise.resolve(fn())`的形式，它也属于同步任务。**await 后面的代码，则可以看做是 then()方法的回调函数（即微任务）**。
 
 浏览器环境和 Node 环境中实现的 Event Loop 也是不相同的（主要针对 Node 11 之前版本）。
 
