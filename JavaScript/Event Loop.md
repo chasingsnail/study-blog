@@ -122,7 +122,7 @@ close callbacks 阶段：执行 socket 的 close 事件回调
 
 #### setTimeout 与 setImmediate
 
-`setImmediate()`具有最高优先级，只要`poll`队列为空，代码被`setImmediate()`，无论是否有`timers`达到下限时间，`setImmediate()`的代码都先执行。
+**`setImmediate()`具有最高优先级**，只要`poll`队列为空，代码被`setImmediate()`，无论是否有`timers`达到下限时间，`setImmediate()`的代码都先执行。
 
 - setImmediate 设计在 poll 阶段完成时执行，即 check 阶段；
 - setTimeout 设计在 poll 阶段为空闲时，且设定时间到达后执行，但它在 timer 阶段执行
