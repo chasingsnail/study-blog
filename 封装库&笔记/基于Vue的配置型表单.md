@@ -1,6 +1,6 @@
 ## 背景
 
-表单可以说是前端开发中最经常遇到的元素之一。在日常表单的开发中，存在着`v-if`条件渲染、满屏magic number枚举值，再加上表单之间的复杂的联动交互的情况，往往使得一个看似简单的表单变得愈加臃肿不堪。
+表单可以说是前端开发中最经常遇到的元素之一。在日常表单的开发中，存在着 `v-if` 条件渲染、满屏 `magic number` 枚举值，再加上表单之间的复杂的联动交互的情况，往往使得一个看似简单的表单变得愈加臃肿不堪。
 
 表单的联动关系与状态重置往往散落在各个函数方法中，随着需求的不断扩充与变更，使得表单之间的耦合复杂度上升，对于后续的开发者而言，很难清晰快速地了解表单中隐含的业务逻辑与联动关系，这使得表单变得非常不便于维护。
 
@@ -10,7 +10,7 @@
 
 ### 通过JSON来配置表单
 
-我们从配置二字入手，将表单的开发看作是配置一些`key`与`value`的映射，理想情况下，我们希望能够用一个`JSON`的结构来定义表单模型。
+我们从配置二字入手，将表单的开发看作是配置一些 `key` 与 `value` 的映射，理想情况下，我们希望能够用一个 `JSON` 的结构来定义表单模型。
 
 ```json
 [
@@ -32,9 +32,10 @@
 
 通过上述的配置结构，期望能够在页面中生成对应的表单模板：
 
-![1573127610348](C:\Users\18106763\AppData\Roaming\Typora\typora-user-images\1573127610348.png)
 
-在上述配置中，`label`表示表单标签，`type`表示表单对应的控件类型，`key`表示表单中的数据参数。最终，根据用户的输入，我们最终可以获取到以下数据模型用以提交：
+![](https://user-gold-cdn.xitu.io/2019/11/8/16e4a560b73891f0?w=624&h=133&f=png&s=5401)
+
+在上述配置中，`label` 表示表单标签，`type` 表示表单对应的控件类型，`key` 表示表单中的数据参数。最终，根据用户的输入，我们最终可以获取到以下数据模型用以提交：
 
 ```json
 {
@@ -43,7 +44,7 @@
 }
 ```
 
-明确了表单的配置结构后，我们可以开始着手去构建一个表单组件，这个组件仅需要传入`JSON`配置。
+明确了表单的配置结构后，我们可以开始着手去构建一个表单组件，这个组件仅需要传入 `JSON` 配置。
 
 ```vue
 <template>
@@ -71,13 +72,13 @@ export default {
 }
 ```
 
-其中，`formModel`是我们最后提交所需要的数据参数，而`formItems`对应的每一项是一个表单控件。
+其中，`formModel` 是我们最后提交所需要的数据参数，而 `formItems` 对应的每一项是一个表单控件。
 
 ### 组件映射
 
-首先，我们可以选择自己喜欢的组件库来作为表单组件的基础模板，这里选择使用`Element`中的`Form`及其相关控件组件作为基础。
+首先，我们可以选择自己喜欢的组件库来作为表单组件的基础模板，这里选择使用 `Element-UI` 中的 `Form` 及其相关控件组件作为基础。
 
-在我们的`JSON`配置中，`type`字段用来表示不同的表单控件。因此我们需要维护一份`type`与组件`tag`之间的映射关系：
+在我们的 `JSON` 配置中，`type` 字段用来表示不同的表单控件。因此我们需要维护一份 `type` 与组件 `tag` 之间的映射关系：
 
 ```js
 const tagMap = {
@@ -112,7 +113,7 @@ const tagMap = {
 </el-form-item>
 ```
 
-如上代码所示，这里的`configItems`是由我们传入的`JSON`配置处理而来。
+如上代码所示，这里的 `configItems` 是由我们传入的 `JSON` 配置处理而来。
 
 ```js
 computed: {
@@ -122,15 +123,15 @@ computed: {
 }
 ```
 
-我们将`configItems`的转化工作放在计算属性中进行，这么做的原因是能够触发`formModel`收集到`configItems`的依赖，使得在`formModel`变化时，表单能够做出正确的响应渲染。
+我们将 `configItems` 的转化工作放在计算属性中进行，这么做的原因是能够触发 `formModel` 收集到 `configItems` 的依赖，使得在 `formModel` 变化时，表单能够做出正确的响应渲染。
 
-这里的核心在于`formatItem`方法，它是表单项转化的关键所在。
+这里的核心在于 `formatItem` 方法，它是表单项转化的关键所在。
 
 ```js
 function formatItem(config, form) {
   let item = { ...config }
   const type = item.type || 'input'
-  let comp = tagMap[type]
+  const comp = tagMap[type]
   // 映射标签
   item.tag = comp.tag
   // 维护props
@@ -226,43 +227,6 @@ const _props = isFunction(item.props) ? item.props(form) : item.props
 item.props = { ...comp.props, ..._props }
 ```
 
-### 特定值限制
-
-即当表单项1为特定值时，表单项2也只能为某个特定值。
-
-```js
-[
-  {
-    label: '标签1',
-    key: 'item1',
-    type: 'radio',
-    props: [
-      { 1: 'radio1', 2: 'radio2'}
-    ]
-  },
-  {
-    label: '标签2',
-    key: 'item2',
-    type: 'select',
-    ifShow(form) {
-      return form.item1 === '1'
-    },
-    watch(form) {
-      if (form.item1 === 1)
-      return 1
-    },
-    props(form) {
-      return {
-        disabled: form.item1 === '1',
-        options: { 1: 'select1', 2: 'select2'}
-      }
-    }
-  }
-]
-```
-
-如上代码所示，在`JSON`配置中增加了`watch`字段来对`item1`的值进行检测，当满足特定值时，改变`item2`的值，有需要的情况下并还可以通过`props`中的`disabled`对`item2`作出限制。
-
 总结上述存在的情况，最终我们的组件模板与`formatItem`方法调整为：
 
 ```vue
@@ -295,11 +259,6 @@ function formatItem(config, form) {
   item.props = { ...comp.props, ..._props }
   // 是否显示
   item._ifShow = isFunction(item.ifShow) ? item.ifShow(form) : true
-  // 特定值限制
-  const _watch = isFunction(item.watch) ? item.watch(form) : null
-  if (_watch) {
-    form[item.key] = _watch
-  }
   return item
 }
 ```
@@ -387,29 +346,21 @@ createElement(
 
 那么，了解了render函数的使用后，我们可以尝试构建出一个高阶组件来替换动态组件：
 
-`Hoc.vue`
+`DynamicCell.vue`
 
 ```vue
 <script>
 export default {
   props: {
-    item: Object // formItems中的子项
+    item: Object
   },
   render(h) {
     const { item } = this
     const WrapComp = item.tag
     return h(WrapComp, {
-      on: {
-        ...this.$listeners, // input事件
-        ...item.on // 组件event
-      },
-      attrs: {
-        ...this.$attrs, // v-model value
-        ...item.attrs // 组件attr
-      },
-      props: {
-        ...item.props // 自定义props
-      }
+      on: this.$listeners,
+      attrs: { ...this.$attrs, ...item.attrs },
+      props: this.$props
     })
   }
 }
@@ -461,24 +412,24 @@ item.attrs = Object.assign({}, comp.attrs || {}, _attrs)
   }
 ```
 
-这里需要将`props`字段写成箭头函数的形式。如果是对象的形式，则`options`为`undefined`且不会更新。同样地，我们需要调整`formatItem`方法：
+这里需要将`props`字段写成箭头函数的形式。如果是对象的形式，data 执行初始化时，tempOpts 属性还未挂载到实例（this）上，因此是 undefined。当 props 函数在 computed 中执行时，此时 data 的初始化已经完成。同样地，我们需要调整`formatItem`方法：
 
 ```js
-// 维护props
-const _props = isFunction(item.props) ? item.props(form) : item.props
-item.props = Object.keys(_props).reduce((prev, key) => {
-  prev[key] = _props[key]
-  return prev
-}, {})
+// 维护 props
+const _props = item.props
+  ? isFunction(item.props)
+    ? item.props(form)
+    : item.props
+  : {}
 ```
 
-如果直接将`_props`赋给`item.props`仍然不会触发更新，而经过遍历`_props`时，触发了`tempOpts`的`get`拦截器函数，使得其收集到了`configItems`的依赖，因此在异步获取数据更新`tempOpts`时，表单也会随之更新渲染。
+
 
 ### 自定义组件
 
-表单中除了渲染`Element`提供的表单控件外，某些情况下还需要渲染自定义组件。
+表单中除了渲染`Element`提供的表单控件外，某些页面的表单存在非常规表单元素，而这类特定页面出现的组件无需设置为全局组件，因此，需要提供自定义组件渲染的能力。
 
-这时同样需要用到render函数的能力：我们可以在定义的Hoc组件中使用`JSX`语法，并通过`render`方法渲染模板。
+这时同样需要用到render函数的能力：我们可以在定义的  DynamicCell 组件中使用`JSX`语法，并通过`render`方法渲染模板。
 
 我们可以在`JSON`配置中增加`renderCell`字段，假设当前有一个自定义组件<button-counter>：
 
@@ -492,7 +443,7 @@ item.props = Object.keys(_props).reduce((prev, key) => {
 }
 ```
 
-同样地，在`Hoc`中要进行针对`renderCell`的判断：
+同样地，在 DynamicCell 中要进行针对`renderCell`的判断：
 
 ```js
 render(h) {
@@ -502,20 +453,11 @@ render(h) {
     return item.renderCell
   } else {
     return h(WrapComp, {
-      on: {
-        ...this.$listeners, // input事件
-        ...item.on // 组件event
-      },
-      attrs: {
-        ...this.$attrs, // v-model value
-        ...item.attrs // 组件attr
-      },
-      props: {
-        ...item.props // 自定义props
-      }
+      on: this.$listeners,
+      attrs: { ...this.$attrs, ...item.attrs },
+      props: this.$props
     })
   }
-}
 ```
 
 ### 表单验证
@@ -540,5 +482,4 @@ render(h) {
 
 + [再也不想写表单了]( https://zhuanlan.zhihu.com/p/48241645 )
 + [ 探索Vue高阶组件]( http://caibaojian.com/vue-design/more/vue-hoc.html )
-+ [渲染函数 & JXS]( https://cn.vuejs.org/v2/guide/render-function.html )
-
++ [渲染函数 & JXS](
