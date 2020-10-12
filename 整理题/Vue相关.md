@@ -6,7 +6,7 @@
 
 通过 new Vue 的示例对象 data 可以使用对象是因为其是一个单独的实例，不会被复用
 
-### 生命周期的理解（各阶段做了什么，在什么时机触发）
+### 生命周期的理解
 
 + beforeCreate
 
@@ -52,7 +52,7 @@
 
   发生在 `vnode` 的 `destory` 钩子函数
 
-#### 父子组件生命周期执行顺序（结合源码实现）
+#### 父子组件生命周期执行顺序
 
 初始渲染：父beforeCreate->父created->父beforeMount->子beforeCreate->子created->子beforeMount->子mounted->父mounted
 
@@ -144,6 +144,12 @@ methodsToPatch.forEach(function (method) {
 + 数组的 length 属性重定义是可能的，但是会受到一般的重定义限制。并不是所有的浏览器都允许 Array.length 的重定义。
 + 作者从性能体验的性价比考虑后弃用。
 
+### Object.defineProperty 缺点
+
++ 深度监听需要深度递归，一次性计算量大
++ 无法监听新增或删除属性 
++ 无法监听数组操作方法
+
 ### set 与 delete 的实现
 
 #### $set
@@ -196,33 +202,23 @@ cleanupDeps () {
 }
 ```
 
-### Proxy 和 Object.defineProperty 的对比 （引申为后者的缺点、proxy 的优势或与 Vue 3 的对比
+### Vue 3 vs. Vue 2
 
-#### Object.defineProperty 缺点
-
-+ 深度监听需要深度递归，一次性计算量大
-+ 无法监听新增或删除属性 
-+ 无法监听数组操作方法
+#### 响应式
 
 #### proxy 的优劣
 
-Proxy可以直接监听对象和数组的变化，并且有多达13种拦截方法。proxy 可以直接劫持整个对象，并返回一个新的对象。不像 Object.defineProperty 需要对每个属性进行代理。因此，Vue 3 不需要在初始化阶段递归劫持所有属性的 get
+Proxy 可以直接监听对象和数组的变化，并且有多达13种拦截方法。proxy 可以直接劫持整个对象，并返回一个新的对象。
 
-Proxy 拦截的是 「修改 data 上的任意 key」 和 「读取 data 上的任意 key」，无论是该属性是已有的还是新增的
++ 不像 Object.defineProperty 需要对每个属性进行代理。因此，Vue 3 不需要在初始化阶段递归劫持所有属性的 get
 
-proxy 可以之间对数组进行操作（push、splice 等）
++ Proxy 拦截的是 「修改 data 上的任意 key」 和 「读取 data 上的任意 key」，无论是该属性是已有的还是新增的
 
-proxy 拦截方式多，例如 apply、has 等
++ proxy 可以直接对数组进行操作（push、splice 等） *
 
-proxy 劣势在于其兼容性问题，且无法完美得 polyfill 方案。
++ proxy 拦截方式多，例如 apply、has 等 *
 
-#### 响应式过程
-
-Vue 3 通过 reative 方法完成对数据的响应式代理。其本质是通过 proxy 进行数据劫持。通过 get 和 set 进行收集收集和派发更新。
-
-在依赖收集时，初始化一个全局的 weakMap 用来依赖列表，对于每个属性 key，通过 set 来保存依赖这些 key 的 effect。其中 effect 类似于 Vue 2 中的 watcher。在触发 get 时，会收集到当前的 effect，这个 effect 赋值给了一个全局的变量，类似于 Vue 2 的 Dep.target 。由此完成了依赖的收集。
-
-在派发更新，触发了 set 时，会通知 set 中收集到的所有 effect，进行更新渲染。
++ proxy 劣势在于其兼容性问题，且无法完美得 polyfill 方案。
 
 #### 注意点
 
@@ -244,7 +240,7 @@ Vue 3 通过 reative 方法完成对数据的响应式代理。其本质是通�
 
 + 避免触发多次（监测数组时）
 
-  针对数组的操作，例如 push，会触发多次 set 的执行，同时也会引发 get 的操作。Vue 3 中在 set 时利用了 hasOwnProperty 来判断出发的 key 是否为当前自身的属性来决定是否 trigger。同时也可判断新旧值是否相同。
+  针对数组的操作，例如 push，会触发多次 set 的执行，同时也会引发 get 的操作。Vue 3 中在 set 时利用了 hasOwnProperty 来判断触发的 key 是否为当前自身的属性来决定是否 trigger。同时也可判断新旧值是否相同。
 
   ```js
   const hasOwnProperty = Object.prototype.hasOwnProperty
@@ -269,6 +265,20 @@ Vue 3 通过 reative 方法完成对数据的响应式代理。其本质是通�
   在 set 时，第一次的 val 是 [1, 2], key 为 2，因此 hasOwn 的结果为 false，说明这是一个新增的操作。第二次是 key 是 length，而 target['length'] 也是 4，因此不执行任何语句。
 
   由此，来实现避免多余的 key。
+
+#### Vue 3 响应式过程
+
+Vue 3 通过 reative 方法完成对数据的响应式代理。其本质是通过 proxy 进行数据劫持。通过 get 和 set 进行依赖收集和派发更新。
+
+在组件渲染的时候，会给当前的实例创建一个 effect，类似 Vue2 中的 Watcher，并且当全局变量 activeEffect 赋值为 effect。
+
+在过程中触发 get 时，会进行依赖收集，首先会往全局的 weakMap 里创建对应的 key，这个  key  对应的 value 初始化为 Map，对于每个属性 key，作为 Map 的key，它们的 value 是 Set ，通过 Set 来保存依赖的 effect。在触发 get 时，会收集到 activeEffect，也就是当前渲染实例的 effect，类似于 Vue 2 的依赖收集过程。
+
+在派发更新，触发了 set 时，把这些收集到的 effect 存到一个集合中，在下一个 tick 中执行清空所有的 effect。
+
+#### 静态节点提升 shapeFlag
+
+生成 Vnode 树时，会给每个节点打上 shapeFlag 标记，表示不同类型的节点。在最终 patch 阶段，会根据这个 flag 来进行不同的更新，相比于 Vue2 的 patch 更加灵活。
 
 ### next-tick的实现
 
@@ -927,7 +937,4 @@ url
 
 ## 参考
 
-+ [深度解读 Vue 3 源码 | 从编译过程，理解静态节点提升](https://juejin.im/post/6874419253865365511)
-+ [深度解读 Vue 3 源码 | 从编译过程，理解静态节点提升](https://juejin.im/post/6874419253865365511)
-+ [Vue3好在哪里](https://juejin.im/post/6844904132109664264)
 + [驳《前端常见的Vue面试题目汇总》](https://juejin.im/post/6844904118704668685)
