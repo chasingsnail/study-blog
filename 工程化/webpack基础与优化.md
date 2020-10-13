@@ -33,7 +33,7 @@ webpack4增加mode配置项，告知webpack使用相应模式的内置优化。
 
 ```js
 module.exports = {
-    entry: './src/index.js' //webpack的默认配置
+    entry: './src/index.js' // webpack的默认配置
 }
 ```
 
@@ -61,7 +61,7 @@ loader 用于对模块的源代码进行转换。loader 可以使你在 `import`
 
 *loader* 让 webpack 能够去处理那些非 JavaScript 文件（webpack 自身只理解 JavaScript）。loader 可以将所有类型的文件转换为 webpack 能够处理的有效[模块](https://www.webpackjs.com/concepts/modules)，然后你就可以利用 webpack 的打包能力，对它们进行处理。
 
-loader配置在module.rules中，其中rules时一个数组，常用的配置格式为：
+loader配置在**module.rules**中，其中rules时一个数组，常用的配置格式为：
 
 ```js
 {

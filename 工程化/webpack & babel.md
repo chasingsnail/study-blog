@@ -17,6 +17,19 @@
 
 [基本配置](https://juejin.im/post/6844904031240863758)
 
+### devTool
+
++ eval：每个模块使用 eval() 来执行，且有 //@ sourceURL，构建快速，缺点在于无法映射到转换后的代码
++ source-map：可根据转换后的代码定位到转换前的代码，便于开发调试
++ inline：source Map 内容通过 base64 放在 js 文件中
++ hidden：不自动引入 source-map
++ cheap：不显示对应源代码**列数**
++ module：显示 loader 中的 source-map
+
+开发环境下适用：inline-cheap-eval-source-map
+
+正式环境一般不显示 source-map
+
 ### loader
 
 #### 常见 loader
@@ -36,15 +49,19 @@ this 指向 loaderContext，该对象上有callback、data、loaderIndex、addCo
 
 #### 自定义 loader
 
-通过常用的 loader-utils 的 getOptions 获取配置的 options。
-
 可通过 webpack 配置 resolveLoader 字段来自定义 loader 引用来源（默认从 node_modules 中获取）
+
+输入与输出都是字符串的形式，可以对字符串进行修改。
+
+如果 loader 可以传入 options 的情况，可以通过 loader-utils 的 getOptions 获取配置的 options。
 
 参考：https://juejin.im/post/6844904054393405453
 
 ### plugin
 
 #### 自定义plugin
+
+**apply 方法**
 
 ```js
 // customPlugin.js
@@ -64,13 +81,13 @@ module.exports = firstPlugin
 
 其中，compiler 包含了 webpack 中所有的配置信息，全局唯一。
 
-Compilation 相当于一个编译实例，每次文件改动时，webpack会创建一个新的 Compilation 对象。它包含了当前输入资源、输出资源、变化的文件等等，可以监听每次编译过程中触发的事件钩子。
+Compilation 相当于一个编译实例，每次文件改动时，webpack会创建一个新的 Compilation 对象。它包含了当前输入资源、输出资源、变化的文件等等，在这个过程中会触发事件钩子。**plugin 通过监听会贯穿在整个生产过程的每个步骤，对编译文件进行扩展。**
 
 ### loader 与 plugin 的区别
 
-loader 是模块转化器，作用在于处理任意类型的文件，并且将它们转换成一个让 `webpack` 可以处理的有效模块。，输入输出都是字符串的形式。
+loader 是模块转化器，作用在于处理任意类型的文件，并且将它们转换成一个让 `webpack` 可以处理的有效模块。输入输出都是字符串的形式。
 
-plugin 通过监听会贯穿在整个生产过程的每个步骤，对编译文件进行扩展
+plugin 通过监听会贯穿在整个生产过程中触发事件钩子，对编译文件进行扩展。
 
 ### 手写 loader / plugin
 
@@ -115,7 +132,7 @@ if(module && module.hot) {
 + Webpack 热更新模块.md
 + [Webpack HMR 原理解析](https://zhuanlan.zhihu.com/p/30669007)
 
-#### vue 热更新原理
+#### Vue 热更新原理
 
 在 vue-loader 处理中注入了热更新相关的代码。更新粒度是组件级的，通过维护了一个map对象，来存储对应组件的实例。通过往 beforeCreate 和 beforeDestory 注入，在触发时收集与销毁 Map 上对应的实例。在热更新触发后，对组件进行重新渲染（$forceUpdate）。
 
@@ -125,7 +142,7 @@ if(module && module.hot) {
 
 读取文件配置，从入口文件开始执行编译。
 
-按文件的类型，调用相应的 loader 对模版进行编译，转换成标准的JS代码。然后通过对JS代码的分析，收集其中的依赖关系，形成一颗关系树。在 `Webpack` 运行的生命周期中会广播出许多事件，`Plugin` 可以监听这些事件，在合适的时机通过`Webpack`提供的`API`改变输出结果。
+按文件的类型，调用相应的 loader 对模版进行编译，将loader处理后的文件通过acorn抽象成抽象语法树AST，然后遍历AST，递归分析构建该模块的所有依赖并切收集依赖关系，形成一颗关系树。在 `Webpack` 运行的生命周期中会广播出许多事件，`Plugin` 可以监听这些事件，在合适的时机通过`Webpack`提供的`API`改变输出结果。
 
 webpack 根据入口文件和模块之间的依赖关系，会将代码包装成一个个 chunk，根据依赖和配置确定输出内容，这时仍可以通过 plugin 进行文件的修改。
 
