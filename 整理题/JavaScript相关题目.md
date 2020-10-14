@@ -450,7 +450,7 @@ proxyTable: {
 
   通过 iframe postMessage 发送消息。接受方通过监听 message 事件捕获消息
 
-+ document.domain
++ document.domain 实现共享 cookie
 
   用于主域名相同，子域名不同的场景，例如 比如主域名是 `http://crossdomain.com:9099`，子域名是`http://child.crossdomain.com:9099`。此时会收到同源策略限制，只要设置相同的 `document.domain = crossdomain.com`即可
 
@@ -475,6 +475,16 @@ JS 的任务分为**微任务**与**宏任务**。
 
 而在Node.js 中，事件循环分为 timer、poll、check等六个阶段。microtask 会在事件循环的各个阶段之间执行，也就是一个阶段执行完毕，就会去执行microtask队列的任务。即微任务的执行时机不同。
 
+## 首屏优化
+
++ Vue-Router路由懒加载（利用Webpack的代码切割）
++ 使用CDN加速，将通用的库从vendor进行抽离
++ gzip
++ Vue 异步组件
++ SSR
++ 第三方库按需加载，例如 Element-UI
++ SW 缓存文件
++ 使用link标签的rel属性设置   prefetch（这段资源将会在未来某个导航或者功能要用到，但是本资源的下载顺序权重比较低，prefetch通常用于加速下一次导航）、preload（preload将会把资源得下载顺序权重提高，使得关键数据提前下载好，优化页面打开速度）
 
 
 ## 遗留 
@@ -489,7 +499,6 @@ JS 的任务分为**微任务**与**宏任务**。
 + 箭头函数与普通函数区别
 + http 部分内容整理 （完成）
 + ES6 新特性 （map 、set 等）
-
 
 
 木牛流马

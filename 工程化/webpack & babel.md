@@ -209,37 +209,23 @@ webpack默认使用TerserWebpackPlugin，**默认开启**多进程与缓存，�
 
 #### 打包构建优化总结
 
-+ 构建层
-  + 多进程
-    + happyPack
-    + thread-loader
-    + terser，多进程并行压缩
-  + 缓存
-    + HardSourceWebpackPlugin，有效提升第二次构建速度
-    + dll
-    + 大部分 `loader` 都提供了`cache` 配置项。比如在 `babel-loader` 中，可以通过设置`cacheDirectory` 来开启缓存，`babel-loader?cacheDirectory=true`。不支持 cache 配置的 loader 可通过 cache-loader 将编译写过写入缓存。
-  + 压缩
-+ 代码层
-  + 作用域提升 scope hosting 将分散的模块划分到同一个作用域中，有效减少打包后的代码体积和运行时的内存损耗
-  + 抽离第三方库、公共模块
-  + 删除无用代码 tree-shaking
-+ 构建速度
-  + 优化 babel-loader 开启缓存
-  + ignorePlugin
-  + noParse
-  + happyPack
++ 构建速度 （开发阶段）
+  + loader 缓存：大部分 `loader` 都提供了`cache` 配置项。比如在 `babel-loader` 中，可以通过设置`cacheDirectory` 来开启缓存，`babel-loader?cacheDirectory=true`。不支持 cache 配置的 loader 可通过 cache-loader 将编译写过写入缓存。
+  + ignorePlugin：忽略第三方包指定目录，让这些指定目录不要被打包进去，例如 moment 的语言包（这样需要手动引入需要的语言）
+  + happyPack / thread-loader 任务分解到多个子进程中去并行处理
   + ParallelUglifyPlugin
   + 热更新 no production
   + DLL no production
-+ 产出性能优化
++ 产出性能优化 （打包产出优化）
   + 小图 base64
-  + bundle hash
-  + 懒加载
-  + 提取公共代码
-  + CDN
-  + scoped hosting
+  + 压缩
+  + 路由或者是模块的懒加载提高加载焦虑
+  + 抽离第三方库、公共模块 （splitChunks）
+  + CDN：常用的库代码放置到公司 CDN
+  + scoped hosting ：作用域提升 scope hosting 将分散的模块划分到同一个作用域中，有效减少打包后的代码体积和运行时的内存损耗
+  + 删除无用代码 tree-shaking
 
-优化本身是一件拆东补西的事，比如提取出一个公共 chunk，打包产出的文件就会多一个，也必然会增加一个网络请求。当项目很庞大，每个公共模块单独提取成一个 chunk 会导致打包速度出奇的慢，影响开发体验，所以通常会取折衷方案，将重复的较大模块单独提取，而将一些重复的小模块打包到一个 chunk，以减少包数量，同时不能让这个包太大，否则会影响页面加载时间。
+优化本身是一件拆东补西的事。比如提取出一个公共 chunk，打包产出的文件就会多一个，也必然会增加一个网络请求。当项目很庞大，每个公共模块单独提取成一个 chunk 会导致打包速度出奇的慢，影响开发体验，需要在包的大小和数量做一个权衡，将重复的较大模块单独提取，而将一些重复的小模块打包到一个 chunk，以减少包数量，同时不能让这个包太大，否则会影响页面加载时间。
 
 + dll
 + tree-shaking
