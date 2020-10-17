@@ -66,7 +66,7 @@ Vue 是用了代理加上发布订阅模式，对对象进行数据劫持，在�
 
 首先在初始化时，通过 Object.defineProperty 对数据对象进行深度遍历，给每个属性添加上 setter 和 getter 的属性描述符，这样通过访问这个值触发 getter 收集依赖，改变某个值时，触发 setter 进行通知更新。
 
-组件的 render 是由渲染 watcher 来代理执行的，每个组件实例都对应一个 **watcher** 实例。在渲染页面的过程中，会初始化渲染 watcher ，watch 在执行之前会将自身添加到全局变量中 Dep.target。在生成 Vnode 的过程中，这时会访问 data 中定义的响应式数据，由此触发数据对象相应的 getter，收集到了全局变量 watcher 作为自身依赖。（收集到 watcher 是存放在 Dep 实例 的 subs 中，其中 Dep 实例通过闭包的方式可以在 getter 和 setter 中访问到）
+组件的 render 是由渲染 watcher 来代理执行的，每个组件实例都对应一个 **watcher** 实例。在渲染页面的过程中，会初始化渲染 watcher ，watcher 在初始化阶段主要会做两件事。首先，watch 在执行之前会将自身添加到全局变量中 Dep.target。接着会执行 watcher 中传入的回调，也就是组件的渲染。在生成 Vnode 的过程中，这时会访问 data 中定义的响应式数据，由此触发数据对象相应的 getter，收集到了全局变量 watcher 作为自身依赖。（收集到 watcher 是存放在 Dep 实例 的 subs 中，其中 Dep 实例通过闭包的方式可以在 getter 和 setter 中访问到）
 
 当响应式数据发生变动派发更新时，触发相应的 setter，通知所有的依赖进行更新，也是通过 watcher  去重新调用渲染更新方法，经过一些的 diff 比较，得到更新之后的 vnode 。watcher 的更新不是立即执行的，而是会将他们放置在一个缓存队列中，通过 nextTick 在下一个循环中一次性更新完成。
 
@@ -270,7 +270,7 @@ Proxy 可以直接监听对象和数组的变化，并且有多达13种拦截方
 
 Vue 3 通过 reative 方法完成对数据的响应式代理。其本质是通过 proxy 进行数据劫持。通过 get 和 set 进行依赖收集和派发更新。
 
-在组件渲染的时候，会给当前的实例创建一个 effect，类似 Vue2 中的 Watcher，并且当全局变量 activeEffect 赋值为 effect。
+在组件渲染的时候，会给当前的实例创建一个 effect，类似 Vue2 中的 Watcher，并且将全局变量 activeEffect 赋值为 effect。
 
 在过程中触发 get 时，会进行依赖收集，首先会往全局的 weakMap 里创建对应的 key，这个  key  对应的 value 初始化为 Map，对于每个属性 key，作为 Map 的key，它们的 value 是 Set ，通过 Set 来保存依赖的 effect。在触发 get 时，会收集到 activeEffect，也就是当前渲染实例的 effect，类似于 Vue 2 的依赖收集过程。
 
@@ -708,7 +708,7 @@ key 作为唯一的标记，用于区分不同的 vnode，在新旧节点的对�
 + vnode
 
   + 增强了静态分析，为节点标记为静态节点与动态节点，在 patch 时，只会比较动态节点，静态节点不能进入patch。（Vue 2 中 optimize 过程会标记静态节点略过分析）。
-  + 节点类型细化区分。生成的 Vnode 会标记该节点的 **patchFlag**，标识哪些部分可能会有修改。 在 patch 节点有很多地方会根据这个标记作特定的操作。而在 Vue 2 中，普通节点的 patch 会通过内置的 update 钩子进行全量新旧比对然后更新；如果是 component，则会在 prepatch 节点进行判断，有变化触发 forceUpdate。显然在这个过程中会作较多重复无用的对比。
+  + 节点类型细化区分。生成的 Vnode 会标记该节点的 **shapeFlag**，标识哪些部分可能会有修改。 在 patch 节点有很多地方会根据这个标记作特定的操作。而在 Vue 2 中，普通节点的 patch 会通过内置的 update 钩子进行全量新旧比对然后更新；如果是 component，则会在 prepatch 节点进行判断，有变化触发 forceUpdate。显然在这个过程中会作较多重复无用的对比。
 
 + 事件优化（待补充）
 
@@ -947,8 +947,44 @@ url
 
 ### MVC/MVVM 的理解（待完善）
 
-+ 传统组件需要维护更新 DOM ，Vue 等框架可以通过数据来驱动视图，使开发人员聚焦于数据层，不需要去在 DOM 过于复杂的情况下维护
-+ View （DOM）、ViewModel（Vue 各种事件来改变 model ，从而驱动视图更新）、Model（JS Object）
+#### MVC （Model + View + Controller）
+
+特点：
+
++ View 中的操作传递到 Controller 执行逻辑，View 更新需要重新获取 Model 的数据
++ Controller 负责处理 V 和 M 之间的业务逻辑
++ Model：数据变更后，通过观察者模式通知 View 更新视图 （可实现多个视图共享一个 Model）
+
+缺点
+
++ View 依赖于 Model，无法实现 View 的组件化
+
+#### MVP （Model + View + Presenter）
+
+特点
+
++ Presenter（对应Controller）处理处理业务逻辑，还要处理同步逻辑（调用 View 提供的接口更新视图）
++ View 不处理同步逻辑，而是对 Controller 提供接口，因此不依赖于 Model
++ Model 变更后通过观察者模式通知 Presenter
+
+优缺点
+
++ View 可以实现组件化
++ Presenter 过于厚重，难以维护
+
+#### MVVM （Model-View-ViewModel）
+
+特点
+
++ ViewModel 实现 View 于 Model 的双向绑定
++ View 可组件化，View 的变化会通过 VM 自动更新对应的 Model（Vue 各种事件来改变Model，且驱动视图更新）
++ Model：Model 的变化会被 VM 监听，一旦发生改变，VM 会实现自动更新
+
+优缺点
+
++ 提供了双向绑定机制，解决了 MVP 中手动维护的同步问题（UI 与数据状态的同步）
++ 性能问题，简单应用会额外消耗性能
++ 复杂应用场景，VM 的维护成本较高
 
 ### 框架解决了什么问题
 
