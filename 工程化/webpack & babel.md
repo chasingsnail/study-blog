@@ -236,7 +236,15 @@ webpack默认使用TerserWebpackPlugin，**默认开启**多进程与缓存，�
 
 ### webpack 的缺点 （对比 bundleless）
 
-[Webpack 打包太慢，试试 Bundleless](https://segmentfault.com/a/1190000023161176)
+由于 Webpack 需要打包构建，随着项目增长的时候，资源越来越多的时候，打包构建会越来越慢。达到一定规模的时候，可能优化的收益都不够明显。如果不需要打包，直接使用浏览器去加载对应的资源，可以跳出打包这一步。
+
+在 ESModule 的支持下，可以很快启动，简单调试，直接定位到单文件 debug。
+
+**使用 type="module" 开启 ESModule**
+
+当浏览器在请求资源文件的时候，把对应的资源转化成 ESModule 格式（可以实现非 JS 文件的加载），返回给浏览器，浏览器就会按照 JS 的语法去解析。
+
+[参考：Webpack 打包太慢，试试 Bundleless](https://segmentfault.com/a/1190000023161176)
 
 ## Babel
 
