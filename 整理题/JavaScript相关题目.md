@@ -166,7 +166,7 @@ show(fn) // 100
 
 ### 如何理解闭包
 
-能够访问另一个函数作用域中变量的函数。在闭包内部可以访问外部环境的变量对象。闭包只存储外部变量的引用（经典for循环问题，打印出最后一个i）。在函数调用完成后，其执行上下文环境不会被销毁。
+能够访问另一个函数作用域中变量的函数（绑定了执行环境的的函数）。在闭包内部可以访问外部环境的变量对象。闭包只存储外部变量的引用（经典for循环问题，打印出最后一个i）。在函数调用完成后，其执行上下文环境不会被销毁。
 
 ### 闭包的作用
 
@@ -494,6 +494,55 @@ JS 的任务分为**微任务**与**宏任务**。
 + 第三方库按需加载，例如 Element-UI
 + SW 缓存文件
 + 使用link标签的rel属性设置   prefetch（这段资源将会在未来某个导航或者功能要用到，但是本资源的下载顺序权重比较低，prefetch通常用于加速下一次导航）、preload（preload将会把资源得下载顺序权重提高，使得关键数据提前下载好，优化页面打开速度）
+
+## 安全问题
+
+### xss
+
+注入恶意的客户端代码，例如 js，用户输入的数据存储到服务器，请求数据时，回传后执行。
+
+防范：特殊自负进行编码
+
+### CSRF
+
+
+
+## 防抖与节流
+
+防抖是在短时间内多次触发同一个函数，最后只执行一次，例如窗口大小变化，输入搜索时。
+
+```js
+function debounce(fn, delay) {
+  let timer = null
+  return () => {
+    let args = arguments
+    timer && clearTimeout(timer)
+    
+    timer = setTimout(() => {
+      fn.apply(this, args)
+    }, delay
+  }
+}
+```
+
+节流是在一段时间内，函数只执行一次，例如懒加载监听滚动条位置，按一定的频率来获取
+
+```js
+function throttle(fn, delay) {
+  let timer = null
+  return () => {
+    const args = arguments
+    if (!timer) {
+      timer = setTimeout(() => {
+        fn.apply(this, args)
+        timer = null
+      }, delay)
+    }
+  }
+}
+```
+
+
 
 
 ## 遗留 

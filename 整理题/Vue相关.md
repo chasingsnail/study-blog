@@ -60,13 +60,13 @@
 
 组件销毁：父beforeDestroy->子beforeDestroy->子destroyed->父destroyed
 
-### 双向绑定的实现
+### 双向绑定的实现 （响应式原理）
 
 Vue 是用了代理加上发布订阅模式，对对象进行数据劫持，在数据变动时派发更新通知订阅者，触发相应的回调。
 
 首先在初始化时，通过 Object.defineProperty 对数据对象进行深度遍历，给每个属性添加上 setter 和 getter 的属性描述符，这样通过访问这个值触发 getter 收集依赖，改变某个值时，触发 setter 进行通知更新。
 
-组件的 render 是由渲染 watcher 来代理执行的，每个组件实例都对应一个 **watcher** 实例。在渲染页面的过程中，会初始化渲染 watcher ，watcher 在初始化阶段主要会做两件事。首先，watch 在执行之前会将自身添加到全局变量中 Dep.target。接着会执行 watcher 中传入的回调，也就是组件的渲染。在生成 Vnode 的过程中，这时会访问 data 中定义的响应式数据，由此触发数据对象相应的 getter，收集到了全局变量 watcher 作为自身依赖。（收集到 watcher 是存放在 Dep 实例 的 subs 中，其中 Dep 实例通过闭包的方式可以在 getter 和 setter 中访问到）
+组件的 render 是由渲染 watcher 来代理执行的，每个组件实例都对应一个 **watcher** 实例。在渲染页面的过程中，会初始化渲染 watcher ，watcher 的回调方法就是组件渲染的方法。watcher 在初始化阶段主要会做两件事。首先，watch 在执行回调方法之前会将自身添加到全局变量中 Dep.target。接着会执行 watcher 中传入的回调，也就是组件的渲染。在生成 Vnode 的过程中，这时会访问 data 中定义的响应式数据，由此触发数据对象相应的 getter，收集到了全局变量 watcher 作为自身依赖。（收集到 watcher 是存放在 Dep 实例 的 subs 中，其中 Dep 实例通过闭包的方式可以在 getter 和 setter 中访问到）
 
 当响应式数据发生变动派发更新时，触发相应的 setter，通知所有的依赖进行更新，也是通过 watcher  去重新调用渲染更新方法，经过一些的 diff 比较，得到更新之后的 vnode 。watcher 的更新不是立即执行的，而是会将他们放置在一个缓存队列中，通过 nextTick 在下一个循环中一次性更新完成。
 
@@ -509,8 +509,9 @@ with(this){
 
 keep-alive 可以让我们在组件切换的时候保存先前组件的状态，以避免反复重渲染导致的性能问题。它的实现本质上是通过 slot 插槽来实现的，渲染插槽内的组件时会将对应的 vnode 缓存到 cache 变量中。当组件切换回到初始组件时，会去读区 cache 中的 vnode ，这时候再去渲染的时候就不会去创建组件实例和挂载，而是直接将组件插入，触发 active 相关的生命周期。
 
-
 ### Vue event 事件
+
+在 initMethods 阶段，会遍历 methods 对象，通过 bind 方法把返回的函数赋值给 vm 下对应的 key来实现的，在 bind 的过程中，就给方法绑定了 this。
 
 事件分别在 parse 和 codegen 过程中构成，运行时在 patch 中执行各种 module 的钩子时挂载了定义的事件。
 
