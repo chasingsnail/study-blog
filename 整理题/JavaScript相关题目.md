@@ -124,6 +124,18 @@ Function.prototype.myApply = function(ctx) {
 
 例如obj.foo()是通过obj来找到foo的，因此是在obj环境。一旦通过赋值 var foo = obj.foo，则变量foo直接指向了函数存放地址本身，因此是在全局环境中执行。
 
+## 箭头函数
+
++ 函数体内的 this 是定义时所在的对象，不是使用时所在的对象
+
+  `this`指向的固定化，并不是因为箭头函数内部有绑定`this`的机制，实际原因是箭头函数根本没有自己的`this`，导致内部的`this`就是外层代码块的`this`。
+
++ 不可以当成构造函数，即不可用 new 命令
+
++ 不可以使用 arguments 对象，因为在对象函数体内不存在。可以用 rest 参数代替
+
++ 不可以用 yield 命令，即不能作为 generator 函数
+
 ## 作用域与闭包
 
 ### 函数生命周期
@@ -544,6 +556,25 @@ function throttle(fn, delay) {
 
 
 
+## 性能优化
+
+### 网络传输
+
++ 浏览器缓存开启
++ 减少请求资源的体积
+  + 代码压缩
+  + 公共模块抽离、代码分割、路由懒加载、CDN、tree-shaking
+  + Gzip
++ 减少请求资源的数量 
+  + 图片资源小图使用 base64，减少网络请求
+  + 图片格式使用 Webp 加快图片加载速度（体积小）
+
+### 页面渲染
+
++ js 阻塞渲染
+  + defer、async
++ preload、prefetch
++ 避免重绘和重排
 
 ## 遗留 
 
