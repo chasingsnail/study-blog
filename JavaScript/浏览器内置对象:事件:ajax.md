@@ -204,7 +204,7 @@ btn.onclick = null
 
 ### DOM2 级事件处理
 
-（ 无 DOM1 级事件的原因在于1级 DOM 标准中并没有定义事件相关的内容）
+（ 无 DOM1 级事件的原因在于 1级 DOM 标准中并没有定义事件相关的内容）
 
 定义了两个方法用于指定和删除事件处理程序：`addEventListener()`和`removeEventListener()`。
 
@@ -254,7 +254,7 @@ document.getElementById('button').onclick = function(event) {
 | bubbles                    | Boolean  | 事件是否冒泡                                                 |
 | cancelable                 | Boolean  | 是否可以取消事件的默认行为                                   |
 | type                       | String   | 事件类型                                                     |
-| currentTarget              | Element  | 当前正在处理事件的那个元素，即 `this === event.target`       |
+| currentTarget              | Element  | 返回绑定事件的元素，即 `this === event.target`               |
 | target                     | Element  | 事件目标（未必是当前元素）                                   |
 | defaultPrevented           | Boolean  | 为 true 表示已经调用了 `preventDefault()`(DOM3 级事件)       |
 | detail                     | Integer  | 事件相关的细节                                               |

@@ -18,6 +18,7 @@ BFC 是页面的 CSS 渲染的一部分。是一个独立的布局渲染环境�
 + display 的值是 inline-block、table-cell、flex、table-caption或者inline-flex
 + overflow 的值不是 visible
 + 网格元素
++ flex
 
 ### 作用
 
@@ -206,8 +207,15 @@ Grid 布局是将容器划分成"行"和"列"，产生单元格，然后可以�
 
   同时设置了四个方向的值使得其中的 div 宽度不为0 ，而是随着包裹其的 box 宽度变化。因此 div 具有流体特性，因此它margin:auto`的填充规则和普通流体元素一模一样。因此当我们给子 div 设置了高度，以及 top、bottom 为 0 时，它表现为正常流体特性，垂直方向多余出来的空间即为 margin auto 可计算的空间。
 
+## 伪类与伪元素
 
-### 定位
++ 伪类是选择器的一种，用于当已有元素处于的某个状态时，为其添加对应的样式，常用的选择第一个元素或者是鼠标悬浮的状态。
+
++ 伪元素它更像是在文本中创造出新的元素，而不是在现有的元素上应用类。例如 ::before 或 :: after 配合 content 属性创建不存在文档树的文本。
+
+  ::first-line  ::first-letter  ::before  ::after
+
+CSS3规范中的要求使用双冒号(::)表示伪元素
 
 ## 重绘与回流（重排）
 

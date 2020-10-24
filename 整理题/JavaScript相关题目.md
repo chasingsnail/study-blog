@@ -124,6 +124,18 @@ Function.prototype.myApply = function(ctx) {
 
 例如obj.foo()是通过obj来找到foo的，因此是在obj环境。一旦通过赋值 var foo = obj.foo，则变量foo直接指向了函数存放地址本身，因此是在全局环境中执行。
 
+## 箭头函数
+
++ 函数体内的 this 是定义时所在的对象，不是使用时所在的对象
+
+  `this`指向的固定化，并不是因为箭头函数内部有绑定`this`的机制，实际原因是箭头函数根本没有自己的`this`，导致内部的`this`就是外层代码块的`this`。
+
++ 不可以当成构造函数，即不可用 new 命令
+
++ 不可以使用 arguments 对象，因为在对象函数体内不存在。可以用 rest 参数代替
+
++ 不可以用 yield 命令，即不能作为 generator 函数
+
 ## 作用域与闭包
 
 ### 函数生命周期
@@ -542,22 +554,66 @@ const map = new Map([
 + 图片懒加载
 + 虚拟列表
 
+## 防抖与节流
 
-## 遗留 
+防抖是在短时间内多次触发同一个函数，最后只执行一次，例如窗口大小变化，输入搜索时。
 
-+ Vue 3 对比 Vue 2 详细整理 （好在哪里）
-+ webpack 
-+ 输入url 到页面渲染的过程
-+ DOM 事件与事件流
-+ Promise 原理 + 手写
-+ 前端性能优化
-+ 防抖与节流
-+ 箭头函数与普通函数区别
-+ http 部分内容整理 （完成）
-+ ES6 新特性 （map 、set 等）
+```js
+function debounce(fn, delay) {
+  let timer = null
+  return () => {
+    let args = arguments
+    timer && clearTimeout(timer)
+    
+    timer = setTimout(() => {
+      fn.apply(this, args)
+    }, delay
+  }
+}
+```
+
+节流是在一段时间内，函数只执行一次，例如懒加载监听滚动条位置，按一定的频率来获取
+
+```js
+function throttle(fn, delay) {
+  let timer = null
+  return () => {
+    const args = arguments
+    if (!timer) {
+      timer = setTimeout(() => {
+        fn.apply(this, args)
+        timer = null
+      }, delay)
+    }
+  }
+}
+```
 
 
-木牛流马
+
+## 性能优化
+
+### 网络传输
+
++ 浏览器缓存开启
++ 减少请求资源的体积
+  + 代码压缩
+  + 公共模块抽离、代码分割、路由懒加载、CDN、tree-shaking
+  + Gzip
++ 减少请求资源的数量 
+  + 图片资源小图使用 base64，减少网络请求
+  + 图片格式使用 Webp 加快图片加载速度（体积小）
+
+### 页面渲染
+
++ js 阻塞渲染
+  + defer、async
++ preload、prefetch
++ 避免重绘和重排
+
+## 项目总结
+
+### 木牛流马
 
 + 涉及相关技术栈 ： Vue 全家桶、Canvas
 + 项目中的困难
@@ -572,7 +628,7 @@ const map = new Map([
   + 多个业务组件存在很多相似地方，考虑是否可以统一
   + 定制化页面过多？
 
-GPU 资源管理
+### GPU 资源管理
 
 + 设计技术栈： Vue 全家桶
 
