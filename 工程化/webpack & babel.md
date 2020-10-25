@@ -210,12 +210,16 @@ webpack默认使用TerserWebpackPlugin，**默认开启**多进程与缓存，�
 #### 打包构建优化总结
 
 + 构建速度 （开发阶段）
-  + loader 缓存：大部分 `loader` 都提供了`cache` 配置项。比如在 `babel-loader` 中，可以通过设置`cacheDirectory` 来开启缓存，`babel-loader?cacheDirectory=true`。不支持 cache 配置的 loader 可通过 cache-loader 将编译写过写入缓存。
+  + loader **缓存**：大部分 `loader` 都提供了`cache` 配置项。比如在 `babel-loader` 中，可以通过设置`cacheDirectory` 来开启缓存，`babel-loader?cacheDirectory=true`。不支持 cache 配置的 loader 可通过 cache-loader 将编译写过写入缓存。
   + ignorePlugin：忽略第三方包指定目录，让这些指定目录不要被打包进去，例如 moment 的语言包（这样需要手动引入需要的语言）
   + happyPack / thread-loader 任务分解到多个子进程中去并行处理
   + ParallelUglifyPlugin
   + 热更新 no production
-  + DLL no production
+  + DLL(单独打包成静态依赖，后续只需要引用即可) no production 针对于项目基础库以及几乎不变更的库，替代方案 HardSourceWebpackPlugin
+    + 更新依赖需要手动维护
+    + 无法兼容 ES Module 的引入方式
+    + 它会把所有资源编译成一份文件注入到 html 里面，这样的效果不如直接使用多个 CDN 链接利用 HTTPS 多路复用的特性
+  + Externals 结合 CDN
 + 产出性能优化 （打包产出优化）
   + 小图 base64
   + 压缩
