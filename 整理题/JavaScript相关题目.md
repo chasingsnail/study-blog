@@ -374,53 +374,6 @@ var foo = new SubType()
 
 constructor其实没有什么用处，只是JavaScript语言设计的历史遗留物。由于constructor属性是可以变更的，所以未必真的指向对象的构造函数，只是一个提示。不过，从编程习惯上，我们应该尽量让对象的constructor指向其构造函数，以维持这个惯例。
 
-
-## 跨域
-
-### 背景
-
-+ 同源策略限制（协议，端口和域名相同）
-+ 同源策略限制：针对接口的请求、DOM 的查询、Cookie、LocalStorage 和 IndexDB 无法读取。
-+ 无同源策略的影响
-  + CSRF 攻击，钓鱼网站跨域发送请求获取了 Cookie 鉴权信息
-
-### 方法
-
-#### JSONP
-
-script 标签没有同源策略限制，因此可以通过 script 标签 发起一个请求，前端把回调函数的名称（前后端可约定）放到请求的 query 参数里面。然后服务端返回这个回调函数的执行，并将需要响应的数据放到回调函数的参数里，前端的 script 标签请求到这个执行的回调函数后会立马执行，这样前端就可以随意定制自己的函数来自动处理返回数据了。
-
-缺点：只能支持 Get 请求
-
-#### CORS（跨域资源共享）
-
-允许浏览器向跨源服务器发送请求，需要浏览器端和服务器端同时支持。一般浏览器都能够支持，因此服务端配合支持即可。
-
-CORS 请求分简单与非简单请求。
-
-简单请求同时满足请求方法为 HEAD、GET、POST 且 HTTP 头部信息不超出固定字段（若 ContentTtype 为 json 也不满足）。
-
-如果服务端设置 Access-Control-Allow-Origin 为 * ，则不会带上 Cookie 信息。如果需要传递 Cookie 则需要指定 origin，且设置 credentials。
-
-非简单请求中会首先发一次预检测（OPTIONS 方法），询问当前网页所在的域名是否在服务器的许可名单之中，以及可以使用哪些HTTP动词和头信息字段，返回码是 204，如通过才发出真正的请求返回 200.
-
-预检查除了设置 origin，**还需要设置 Access-Control-Request-Method**（检查请求方式是否支持） 以及 Access-Control-Request-Headers（**指定浏览器CORS请求会额外发送的头信息字段**）。
-
-```js
-// koa 配置 cors
-// 处理cors
-app.use(cors({
-  origin: function (ctx) {
-    return 'http://localhost:9099'
-  },
-  credentials: true,
-  allowMethods: ['GET', 'POST', 'DELETE'],
-  allowHeaders: ['t', 'Content-Type']
-}))
-```
-
-CORS与JSONP的使用目的相同，但是比JSONP更强大。JSONP 只支持`GET`请求，CORS支持所有类型的HTTP请求。JSONP的优势在于支持老式浏览器，以及可以向不支持CORS的网站请求数据。
-
 #### 代理
 
 Nginx 或 Express 起服务（webpack-dev-server）代理转发请求，代理将请求转发至真正的服务端地址，避免了跨域。
@@ -505,6 +458,9 @@ const map = new Map([
 ]);
 ```
 
++ WeakMap 只接受对象作为 key，除了 null
++ 键值指向的对象不计入垃圾回收
+
 ## 箭头函数
 
 + 函数体内的 this 是定义时所在的对象，不是使用时所在的对象。即通过 call 、apply 等调用时对 this 没有影响
@@ -534,7 +490,7 @@ function debounce(fn, delay) {
     
     timer = setTimout(() => {
       fn.apply(this, args)
-    }, delay
+    }, delay)
   }
 }
 ```
@@ -574,16 +530,20 @@ function throttle(fn, delay) {
 ### 网络传输
 
 + 开启资源的**缓存**，避免每次都重新加载
-+ 优化加载剩余关键资源的顺序，让关键资源（CSS）尽早下载
-+ 最小化关键资源数：延迟下载（defer）或者异步解析（async）、懒加载
 + 减小请求资源体积
-  + Webpack 代码压缩
-  + 公共模块的提取，可以抽离第三方的公共插件，抽离代码中自定义的公共代码，合并小尺寸 chunk、提取 css
-  + 针对图片资源可以使用字体图标、使用 Webp
+  + Webpack 代码压缩、开启 Gzip
+  + 代码分割：
+    + 公共模块的提取，可以抽离第三方的公共插件，抽离代码中自定义的公共代码，
+    + 提取 css、
+    + tree-shaking
+    + 第三方库按需引入
   + CDN 抽离基础模块
   + Vue-Router路由懒加载、异步组件
-  + 开启 Gzip
-  + 第三方库按需引入
++ 减少网络资源请求
+  + 图片 base64
+  + 合并小尺寸 chunk
+  + 针对图片资源可以使用字体图标、使用 Webp
++ 优化加载剩余关键资源的顺序，让关键资源（CSS）尽早下载 （prefetch、preload）
 
 ### 页面渲染
 
@@ -592,28 +552,9 @@ function throttle(fn, delay) {
   + 可以通过 transform 来替代直接对于尺寸的修改
   + 避免频繁地操作 DOM 与样式
   + 开启硬件加速
++ 延迟下载（defer）或者异步解析（async）避免 js 文件加载阻塞
 + 图片懒加载
 + 虚拟列表
-
-## 性能优化
-
-### 网络传输
-
-+ 浏览器缓存开启
-+ 减少请求资源的体积
-  + 代码压缩
-  + 公共模块抽离、代码分割、路由懒加载、CDN、tree-shaking
-  + Gzip
-+ 减少请求资源的数量 
-  + 图片资源小图使用 base64，减少网络请求
-  + 图片格式使用 Webp 加快图片加载速度（体积小）
-
-### 页面渲染
-
-+ js 阻塞渲染
-  + defer、async
-+ preload、prefetch
-+ 避免重绘和重排
 
 ## 项目总结
 
@@ -656,6 +597,8 @@ function throttle(fn, delay) {
       + 异步取值：有些下拉框的选项是依赖接口返回的数据，这时候 props 字段也不能够写成一个对象，在执行 data 函数的时候，此时还没有把 data 上的属性挂载到 实例（this）上，所以会是 undefined。因此也需要写成函数的形式，返回对象。这样在 computed 阶段去执行这个函数的时候，这时候 data 已经挂载添加到实例（this）上，并且同时会触发这个字段的 getter，因此从接口获取到数据之后，表单项中能够渲染出来。
       + 方法透传：组件本身自带很多 API，change 事件等等，所以还需要新增一个字段 on，以对象的形式来存储需要用到的方法，用 v-on：$listener 进行透传，这个地方就不需要写成函数了，因为 data 的初始化是在 method 之后，所以直接写成对象的形式即可。
       + 自定义组件的渲染：有些表单中会包含非常规表单项，可能是一个列表，可以增加或删除表格行，然后每一个行里面有若干个输入框。前面从 type 映射到对应的表单组件并能够渲染出来是因为我们在引入组件库的时候，是将其注册为全局组件。这种针对某个页面的特定组件没必要放在全局组件中，因此需要增加自定义组件的渲染，不用 动态组件，而直接使用 render 函数。增加一个 render 字段，里面是一段 JSX，在 render 函数内部判断是否有 render 字段，来进行对应的渲染。
+      + 接口 promise
+      + 组件格式化，拿到组件实例
 
 
 
