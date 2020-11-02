@@ -605,7 +605,8 @@ function throttle(fn, delay) {
 
 + 开启资源的**缓存**，避免每次都重新加载
 + 减小请求资源体积
-  + Webpack 代码压缩、开启 Gzip
+  + Webpack 代码压缩、
+  + 开启 Gzip
   + 代码分割：
     + 公共模块的提取，可以抽离第三方的公共插件，抽离代码中自定义的公共代码，
     + 提取 css、
@@ -614,10 +615,10 @@ function throttle(fn, delay) {
   + CDN 抽离基础模块
   + Vue-Router路由懒加载、异步组件
 + 减少网络资源请求
-  + 图片 base64
+  + 小图片 base64
   + 合并小尺寸 chunk
   + 针对图片资源可以使用字体图标、使用 Webp
-+ 优化加载剩余关键资源的顺序，让关键资源（CSS）尽早下载 （prefetch、preload）
++ 优化加载剩余关键资源的顺序，让关键资源（CSS）尽早下载 （prefetch、preload）、dns-prefetch
 
 ### 页面渲染
 
@@ -629,6 +630,20 @@ function throttle(fn, delay) {
 + 延迟下载（defer）或者异步解析（async）避免 js 文件加载阻塞
 + 图片懒加载
 + 虚拟列表
+
+## 异常监控
+
+### 全局捕获
+
++ window.addEventListener -> error | unhandledrejection | document.addEventListener('click')
++ axios 内部拦截器针对 request 和 response 进行采集、Vue、react 内部错误采集钩子 errorCaptured
++ 实例或者方法进行封装重写，在调用这些方法的前后可以进行额外的工作
+
+### 单点捕获
+
++ try catch
++ 封装一个函数收集异常
++ 或者是专门写一个函数来包裹其他函数，返回一个新的函数，内部可以捕获异常
 
 ## 项目总结
 
