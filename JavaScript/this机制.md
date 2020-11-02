@@ -510,6 +510,12 @@ const compose = function(...arg) {
     }
   }
 }
+
+var a = [1,2,3,4]
+var b = a.reduce((p, c) => {
+  console.log(p, c)
+  return p
+})
 ```
 
 ### this原理
