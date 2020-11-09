@@ -72,6 +72,18 @@ undefined：转为"undefined"
 + 非 undefined、null 类型的普通类型比较时，在非同类型相比的情况下，会将自身转换为 Number 类型
 + == 与 === 的区别主要在于隐式转换
 
+## undefined 与 null 
+
+null 通过 typeof 判断为 object 是由于数据类型在底层通过二进制表示，二进制前三位为0会被 typeof 判断为对象类型，而 null 的二进制全是 0。
+
+### undefined == null
+
+规范中规定它们 == 为 true，表示无效的值，表示的内容也有相似性
+
+### undefined === null
+
+这两者类型不同。
+
 ## This
 
 ### this 的指向
